@@ -1,0 +1,10 @@
+[workspace]
+members = [
+    "packages/uking-extract/common",
+    "packages/uking-extract/backend",
+    "packages/uking-extract/frontend",
+    # "packages/uking-extract/frontend-ida",
+    # "packages/uking-extract/frontend-ghidra",
+    "packages/uking-extract",
+]
+resolver = "2"
