@@ -118,12 +118,21 @@ After running the script, wait for the auto analysis to finish (should say `AU: 
 I recommend still keeping the backup around just in case.
 
 
-## IDA Corrupted DB issue
+## IDA-specific issues
 After running the script and closing the DB, there's a chance that the next time IDA opens it, it won't be able to save any change due to some internal error.
 
-If this happens to you, here's how I resolved it:
+This seems to be a bug in how IDA handles decompiler cache. If this happens to you, try this:
+- Open IDA again and "restored packed database"
+- Edit > Other > Reset decompiler information
+- Leave the default options on, and also check "All caches"
+- Click OK
+- Go to any function and refresh the decompiler output
+- Try saving again
+
+Another hacky way which might also work:
 - Open IDA again and "restored packed database"
 - Go to any function, rename some local variable or argument to cause the decompiler to update the output
 - Try saving again
 
-If it doesn't work, try with another function/variable
+Sometimes, you will find argument types for functions missing. The fix is to run the script generation with `--skip-types`,
+which will only set function types and won't modify the structures, then run the generated script.
