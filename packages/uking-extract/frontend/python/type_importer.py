@@ -98,6 +98,8 @@ class TypeImporter:
         new_info: EnumDef = self.name2enum[name]
         old_info = EnumDef(1, [("UNKNOWN", 0)])
         self.frontend.fill_existing_enum_def(name, old_info)
+        if new_info.size == 0:
+            new_info.size = 1
         _assert(1<=new_info.size<=8, f"Invalid new enum size: {new_info.size}")
         _assert(1<=old_info.size<=8, f"Invalid old enum size: {old_info.size}")
         if new_info == old_info:

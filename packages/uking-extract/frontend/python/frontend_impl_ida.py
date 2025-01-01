@@ -82,7 +82,7 @@ class IDAFrontend(Frontend):
             lambda m: m.startswith("_Z"),
         ]
 
-    def symbol_fallback_heuristics(self, old, _new):
+    def symbol_fallback_heuristic(self, old, _new):
         # if old is mangled, it can probably always override
         return old.startswith("_Z")
     

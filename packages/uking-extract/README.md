@@ -118,3 +118,12 @@ After running the script, wait for the auto analysis to finish (should say `AU: 
 I recommend still keeping the backup around just in case.
 
 
+## IDA Corrupted DB issue
+After running the script and closing the DB, there's a chance that the next time IDA opens it, it won't be able to save any change due to some internal error.
+
+If this happens to you, here's how I resolved it:
+- Open IDA again and "restored packed database"
+- Go to any function, rename some local variable or argument to cause the decompiler to update the output
+- Try saving again
+
+If it doesn't work, try with another function/variable
