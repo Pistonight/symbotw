@@ -5,7 +5,6 @@ from frontend import Frontend
 
 class AddrImporter:
     """importer for importing address symbols"""
-    frontend: Frontend
     ti: TypeImporter
     upper = 0
     name_only = False
@@ -48,7 +47,7 @@ class AddrImporter:
         if self.name_only:
             return
         if info.tyyaml:
-            visitor = self.frontend.make_data_addr_import_visitor(addr, info.name)
+            visitor = self.ti.frontend.make_data_addr_import_visitor(addr, info.name)
             tinfo = self.ti.tyyaml.parse_tyyaml(info.tyyaml)
             visitor.visit_data_type(tinfo)
             visitor.finish()
@@ -61,13 +60,13 @@ class AddrImporter:
         if self.name_only:
             return
         
-        has_existing, old_argnames, old_func = self.frontend.get_existing_function(addr)
+        has_existing, old_argnames, old_func = self.ti.frontend.get_existing_function(addr)
 
         reuse_names = has_existing and len(old_argnames) == len(info.args)
         if not reuse_names:
             verboseln(f"Not reusing names because arg count changed")
 
-        visitor = self.frontend.make_func_addr_import_visitor(addr, info.name)
+        visitor = self.ti.frontend.make_func_addr_import_visitor(addr, info.name)
 
         if info.tyyaml:
             ret_tinfo = self.ti.tyyaml.parse_tyyaml(info.tyyaml)
@@ -110,9 +109,9 @@ class AddrImporter:
 
     def _set_name(self, addr, name):
         """Set the name of an address if it's more preferred than current name"""
-        existing_name = self.frontend.get_symbol_name_by_address(addr)
+        existing_name = self.ti.frontend.get_symbol_name_by_address(addr)
         if existing_name == name:
             return
         if not existing_name or self.ti.heuristics.can_ovrd_symbol(name, existing_name):
             verboseln(f"Rename: {existing_name} -> {name}")
-            self.frontend.set_symbol_name_by_address(addr, name)
+            self.ti.frontend.set_symbol_name_by_address(addr, name)

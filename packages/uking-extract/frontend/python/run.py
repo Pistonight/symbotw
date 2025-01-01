@@ -17,7 +17,7 @@ def _done():
     t = _fmt_time(time.time() - START_TIME)
     infoln(f"Done in {t}")
 
-def run_with_frontend(verbose, frontend: Frontend, process_imports: function):
+def run_with_frontend(verbose, frontend: Frontend, process_imports):
     try:
         set_verbose(verbose)
         ti = TypeImporter(frontend)
@@ -28,4 +28,4 @@ def run_with_frontend(verbose, frontend: Frontend, process_imports: function):
         print(f"[uking-extract] Error: {e}")
         traceback.print_exception(e)
         _done()
-        infoln("[uking-extract] There were errors!")
+        print("[uking-extract] There were errors!")

@@ -1,4 +1,12 @@
-"""Frontend implementation for IDA"""
+"""
+Frontend implementation for IDA
+
+In IDA, choose File > Script file... or press Alt+F7 to run this script
+
+Please make sure to run the script AFTER auto-analysis is complete in a fresh database.
+
+Note that IDA 7.7 Only supports Python <=3.11
+"""
 
 """
 
@@ -32,7 +40,8 @@ from enumdef import EnumDef, EnumImportVisitor
 from uniondef import UnionDef, UnionImportVisitor
 from structdef import StructDef, StructImportVisitor
 from addrdef import AddrImportVisitor
-from common import Frontend, _assert
+from common import _assert
+from frontend import Frontend
 from tyyaml import TyyamlVisitor
 
 import math
@@ -85,41 +94,41 @@ class IDAFrontend(Frontend):
     
     def fill_existing_enum_def(self, name, out: EnumDef):
         existing = ida_typeinf.tinfo_t()
-        _assert(existing, f"failed to create tinfo_t when getting existing enum: {name}")
+        _assert(existing is not None, f"failed to create tinfo_t when getting existing enum: {name}")
         if not existing.get_named_type(None, name):
             return out
         
         existing_data = ida_typeinf.enum_type_data_t()
-        _assert(existing_data, f"failed to create enum_type_data_t when getting existing enum: {name}")
+        _assert(existing_data is not None, f"failed to create enum_type_data_t when getting existing enum: {name}")
         if not existing.get_enum_details(existing_data):
             return out
         value2enumeratorname = {}
         
         for member in existing_data:
-            enumerator_name = member.name
-            if enumerator_name.startwith(name + "::"):
+            enumerator_name: str = member.name
+            if enumerator_name.startswith(name + "::"):
                 enumerator_name = enumerator_name[len(name) + 2]
             value2enumeratorname[int(member.value)] = enumerator_name
 
         out.enumerators = []
         for value in sorted(value2enumeratorname):
-            enumerator = (value2enumeratorname(value), value)
+            enumerator = (value2enumeratorname[value], value)
             out.enumerators.append(enumerator)
 
         return out
     
     def make_enum_import_visitor(self, name, old_info, new_info):
         data = ida_typeinf.enum_type_data_t()
-        _assert(data, f"Failed to create enum data for: {name}")
+        _assert(data is not None, f"Failed to create enum data for: {name}")
         return IDAEnumImportVisitor(name, data)
     
     def get_existing_union_member_names(self, name) -> list[str]:
         existing = ida_typeinf.tinfo_t()
-        _assert(existing, f"failed to create tinfo_t when getting existing union: {name}")
+        _assert(existing is not None, f"failed to create tinfo_t when getting existing union: {name}")
         if not existing.get_named_type(None, name):
             return []
         existing_data = ida_typeinf.udt_type_data_t()
-        _assert(existing_data, f"failed to create ude_type_data_t when getting existing union: {name}")
+        _assert(existing_data is not None, f"failed to create ude_type_data_t when getting existing union: {name}")
         if not existing.get_udt_details(existing_data):
             return []
         if not existing_data.is_union:
@@ -130,20 +139,20 @@ class IDAFrontend(Frontend):
         return membernames
     
     def make_union_import_visitor(self, name, new_info: UnionDef):
-        _create_placeholder(new_info.size, new_info.align)
+        _create_placeholder(name, new_info.size, new_info.align)
         udt = ida_typeinf.udt_type_data_t()
-        _assert(udt, f"failed to create udt_type_data_t for: {name}")
+        _assert(udt is not None, f"failed to create udt_type_data_t for: {name}")
         udt.taudt_bits |= ida_typeinf.TAUDT_CPPOBJ
         udt.is_union = True
         return IDAUnionImportVisitor(name, udt)
     
     def get_existing_struct_offset_to_member_names(self, name) -> dict[int, str]:
         existing = ida_typeinf.tinfo_t()
-        _assert(existing, f"failed to create tinfo_t when getting existing union: {name}")
+        _assert(existing is not None, f"failed to create tinfo_t when getting existing union: {name}")
         if not existing.get_named_type(None, name):
             return {}
         existing_data = ida_typeinf.udt_type_data_t()
-        _assert(existing_data, f"failed to create ude_type_data_t when getting existing union: {name}")
+        _assert(existing_data is not None, f"failed to create ude_type_data_t when getting existing union: {name}")
         if not existing.get_udt_details(existing_data):
             return {}
         if existing_data.is_union:
@@ -154,22 +163,22 @@ class IDAFrontend(Frontend):
         return off2membername
 
     def make_struct_import_visitor(self, name, new_info: StructDef):
-        _create_placeholder(new_info.size, new_info.align)
+        _create_placeholder(name, new_info.size, new_info.align)
         udt = ida_typeinf.udt_type_data_t()
-        _assert(udt, f"failed to create udt_type_data_t for: {name}")
+        _assert(udt is not None, f"failed to create udt_type_data_t for: {name}")
         udt.taudt_bits |= ida_typeinf.TAUDT_CPPOBJ
         udt.is_union = False
-        return IDAUnionImportVisitor(name, udt)
+        return IDAStructImportVisitor(name, udt)
     
-    def get_existing_function_arg_names(self, addr: int) -> tuple[bool, list[str]]:
+    def get_existing_function(self, addr: int):
         existing_func = ida_typeinf.func_type_data_t()
-        _assert(existing_func, f"failed to create func_type_data_t when getting existing function at: 0x{addr:08x}")
+        _assert(existing_func is not None, f"failed to create func_type_data_t when getting existing function at: 0x{addr:08x}")
         existing_tinfo = ida_typeinf.tinfo_t()
-        _assert(existing_tinfo, f"failed to create tinfo_t when getting existing function at: 0x{addr:08x}")
+        _assert(existing_tinfo is not None, f"failed to create tinfo_t when getting existing function at: 0x{addr:08x}")
         if not ida_nalt.get_tinfo(existing_tinfo, addr):
-            return False, []
+            return False, [], None
         if not existing_tinfo.get_func_details(existing_func):
-            return False, []
+            return False, [], None
         existing_names = []
         for arg in existing_func:
             existing_names.append(arg.name)
@@ -189,26 +198,30 @@ class IDAFrontend(Frontend):
     
     def make_func_addr_import_visitor(self, addr, name):
         func = ida_typeinf.func_type_data_t()
-        _assert(func, f"failed to create func_type_data_t for function at: 0x{addr:08x}, {name}")
+        _assert(func is not None, f"failed to create func_type_data_t for function at: 0x{addr:08x}, {name}")
         return IDAAddrImportVisitor(addr, name, func)
     
     
 class IDATyyamlVisitor(TyyamlVisitor):
     def visit_pointer(self, base):
         tinfo = ida_typeinf.tinfo_t()
-        if not tinfo:
+        if tinfo is None:
             return None
-        return tinfo.create_ptr(base)
+        if not tinfo.create_ptr(base):
+            return None
+        return tinfo
     
     def visit_array(self, base, length):
         tinfo = ida_typeinf.tinfo_t()
-        if not tinfo:
+        if tinfo is None:
             return None
-        return tinfo.create_array(base, length)
+        if not tinfo.create_array(base, length):
+            return None
+        return tinfo
 
     def visit_subroutine_start(self, rettype):
         func = ida_typeinf.func_type_data_t()
-        if not func:
+        if func is None:
             return None
         func.cc = ida_typeinf.CM_CC_FASTCALL
         func.rettype = rettype
@@ -216,7 +229,7 @@ class IDATyyamlVisitor(TyyamlVisitor):
     
     def visit_function_arg(self, _subroutine, argtype):
         funcarg = ida_typeinf.funcarg_t()
-        if not funcarg:
+        if funcarg is None:
             return None
         funcarg.type = argtype
         return funcarg
@@ -227,9 +240,11 @@ class IDATyyamlVisitor(TyyamlVisitor):
     
     def visit_subroutine_end(self, subroutine):
         tinfo = ida_typeinf.tinfo_t()
-        if not tinfo:
+        if tinfo is None:
             return None
-        return tinfo.create_func(subroutine)
+        if not tinfo.create_func(subroutine):
+            return None
+        return tinfo
     
     def visit_name(self, name):
         # IDA dislikes names starting with (
@@ -248,9 +263,11 @@ class IDATyyamlVisitor(TyyamlVisitor):
         if name.startswith("("):
             return None
         tinfo = ida_typeinf.tinfo_t()
-        if not tinfo:
+        if tinfo is None:
             return None
-        return tinfo.get_named_type(None, name)
+        if not tinfo.get_named_type(None, name):
+            return None
+        return tinfo
     
     def visit_void(self):
         return ida_typeinf.tinfo_t(ida_typeinf.BTF_VOID)
@@ -294,7 +311,7 @@ class IDAEnumImportVisitor(EnumImportVisitor):
     
     def visit_enumerator(self, enumerator_name, value):
         member = ida_typeinf.enum_member_t()
-        _assert(member, f"Failed to create enum_member_t for enumerator: {enumerator_name}")
+        _assert(member is not None, f"Failed to create enum_member_t for enumerator: {enumerator_name}")
         member.value = value
         member.name = self.name + "::" + enumerator_name
         self.data.push_back(member)
@@ -315,7 +332,7 @@ class IDAUnionImportVisitor(UnionImportVisitor):
 
     def visit_union_member(self, member_name, tinfo):
         member_d = ida_typeinf.udt_member_t()
-        _assert(member_d, f"Failed to create udt_member_t for union: {member_name}")
+        _assert(member_d is not None, f"Failed to create udt_member_t for union: {member_name}")
         member_d.offset = 0
         member_d.name = member_name
         member_d.type = tinfo
@@ -332,7 +349,7 @@ class IDAUnionImportVisitor(UnionImportVisitor):
         self.tinfo = tinfo
 
     def finish(self):
-        _assert(self.tinfo, "Did not create tinfo yet!")
+        _assert(self.tinfo is not None, "Did not create tinfo yet!")
         _set_tinfo(self.name, self.tinfo)
 
 class IDAStructImportVisitor(StructImportVisitor):
@@ -346,7 +363,7 @@ class IDAStructImportVisitor(StructImportVisitor):
 
     def visit_struct_member(self, offset_bytes, member_name, is_vtable, is_base, tinfo):
         member_d = ida_typeinf.udt_member_t()
-        _assert(member_d, f"Failed to create udt_member_t for struct: {member_name}")
+        _assert(member_d is not None, f"Failed to create udt_member_t for struct: {member_name}")
         member_d.offset = offset_bytes * 8 # bits
         member_d.name = member_name
         member_d.type = tinfo
@@ -374,7 +391,7 @@ class IDAStructImportVisitor(StructImportVisitor):
         self.tinfo = tinfo
 
     def finish(self):
-        _assert(self.tinfo, "Did not create tinfo yet!")
+        _assert(self.tinfo is not None, "Did not create tinfo yet!")
         _set_tinfo(self.name, self.tinfo)
 
 class IDAAddrImportVisitor(AddrImportVisitor):
@@ -401,7 +418,7 @@ class IDAAddrImportVisitor(AddrImportVisitor):
 
     def visit_argument(self, name: str, tinfo):
         funcarg = ida_typeinf.funcarg_t()
-        _assert(funcarg, f"Failed to create funcarg_t for arg: {name}")
+        _assert(funcarg is not None, f"Failed to create funcarg_t for arg: {name}")
         funcarg.name = name
         funcarg.type = tinfo
         _assert(funcarg.type is not None, f"Failed to set func arg type: {name}")
@@ -409,7 +426,7 @@ class IDAAddrImportVisitor(AddrImportVisitor):
 
     def visit_old_argument(self, name, i, func_obj):
         t = ida_typeinf.tinfo_t(func_obj[i].type)
-        _assert(t, f"failed to create tinfo_t for old arg type")
+        _assert(t is not None, f"failed to create tinfo_t for old arg type")
         self.visit_argument(name, t)
 
     def visit_dummy_argument(self, name: str):
@@ -417,12 +434,12 @@ class IDAAddrImportVisitor(AddrImportVisitor):
 
     def finish(self):
         """Set the type and done"""
-        if self.func:
+        if self.func is not None:
             tinfo = ida_typeinf.tinfo_t()
-            _assert(tinfo, f"Failed to create tinfo_t for function: {self.name}")
+            _assert(tinfo is not None, f"Failed to create tinfo_t for function: {self.name}")
             _assert(tinfo.create_func(self.func), f"Failed to create function type")
             _set_tinfo_by_address(self.addr, tinfo)
-        elif self.tinfo:
+        elif self.tinfo is not None:
             _set_tinfo_by_address(self.addr, self.tinfo)
         else:
             raise RuntimeError("addr is not a function or data. This should not happen")
@@ -458,7 +475,7 @@ def _create_placeholder(name: str, size: int, align: int):
                 verboseln(f"Existing type: {name}, size={size}, align={align}")
                 return
 
-    verboseln(1,f"Creating placeholder type: {name}, size={size}, align={align}")
+    verboseln(f"Creating placeholder type: {name}, size={size}, align={align}")
     storage_tinfo = ida_typeinf.tinfo_t(ida_typeinf.BTF_CHAR)
     _assert(storage_tinfo.create_array(storage_tinfo, size), f"Failed to create placeholder type: {name}")
     member = ida_typeinf.udt_member_t()

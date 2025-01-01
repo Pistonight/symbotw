@@ -104,8 +104,8 @@ class TypeImporter:
             veryverboseln(f"skipped (existing info matches)")
             return
         old_value2name = {}
-        for (name, value) in old_info.enumerators:
-            old_value2name[value] = name
+        for (ename, value) in old_info.enumerators:
+            old_value2name[value] = ename
 
         enum_visitor = self.frontend.make_enum_import_visitor(name, old_info, new_info)
         enum_visitor.visit_size(new_info.size)
@@ -154,7 +154,7 @@ class TypeImporter:
                     veryverboseln(f"Reuse union member name: {old_name}")
                     name = old_name
             else:
-                veryverboseln(2, f"Add union member: {new_name}")
+                veryverboseln(f"Add union member: {new_name}")
 
             member_type = self.tyyaml.parse_tyyaml(m.tyyaml)
             union_visitor.visit_union_member(name, member_type)

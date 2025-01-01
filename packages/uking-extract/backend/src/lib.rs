@@ -9,6 +9,8 @@ mod dwarf;
 mod parsed;
 mod uking;
 mod worker;
+mod cli;
+pub use cli::*;
 
 pub struct Options {
     /// Path to output YAML

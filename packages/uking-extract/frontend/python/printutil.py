@@ -8,7 +8,7 @@ class PrintScope:
     def __enter__(self):
         global DEPTH
         DEPTH += 1
-    def __exit__(self):
+    def __exit__(self, _a, _b, _c):
         global DEPTH
         DEPTH -= 1
 
@@ -22,7 +22,7 @@ def _print(level, arg):
         prefix = "--> "
     else:
         prefix = ""
-    print(f"[uking-extract]{padding}{prefix}", arg)
+    print(f"[uking-extract] {padding}{prefix}{arg}")
 
 def infoln(arg):
     _print(0, arg)

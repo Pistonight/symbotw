@@ -5,3 +5,9 @@ edition = "2021"
 publish = false
 
 [dependencies]
+common = { path = "./common" }
+backend = { path = "./backend" }
+frontend = { path = "./frontend" }
+clap = { version = "4.5.23", features = ["derive"] }
+error-stack = { version = "0.5.0", features = ["anyhow"] }
+thiserror = "2.0.9"

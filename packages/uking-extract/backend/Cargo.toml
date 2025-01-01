@@ -6,6 +6,7 @@ publish = false
 description = "Backend for uking-extract to read data from DWARF info"
 
 [dependencies]
+clap = { version = "4.5.23", features = ["derive"] }
 common = { path = "../common" }
 derivative = "2.2.0"
 elf = "0.7.4"

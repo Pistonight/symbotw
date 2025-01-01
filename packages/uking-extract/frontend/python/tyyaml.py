@@ -114,7 +114,6 @@ class TyyamlVisitor:
         _assert(False, "please implement visit_f128")
 
 class TyyamlParser:
-    import_named: function
     visitor: TyyamlVisitor
 
     def __init__(self, visitor, import_named):
@@ -137,22 +136,22 @@ class TyyamlParser:
         # pointer
         if spec == "*": 
             tinfo = self.visitor.visit_pointer(base)
-            _assert(tinfo, f"Failed to create pointer type: {tyyaml}")
+            _assert(tinfo is not None, f"Failed to create pointer type: {tyyaml}")
             return self._parse_tyyaml_recur(tyyaml[1:], tinfo)
         # array
         if isinstance(spec, list) and len(spec) == 1 and isinstance(spec[0], int):
             tinfo = self.visitor.visit_array(base, spec[0])
-            _assert(tinfo, f"Failed to create array type: {tyyaml}")
+            _assert(tinfo is not None, f"Failed to create array type: {tyyaml}")
             return self._parse_tyyaml_recur(tyyaml[1:], tinfo)
         # subroutine
         if spec == "()":
             args = tyyaml[1]
             func = self.visitor.visit_subroutine_start(base) # base is return type
-            _assert(func, f"Failed to create function type at visit_subroutine_start: {tyyaml}")
+            _assert(func is not None, f"Failed to create function type at visit_subroutine_start: {tyyaml}")
             funcargs = self._visit_tyyaml_funcargs(func, args)
             self.visitor.visit_subroutine_args(func, funcargs)
             tinfo = self.visitor.visit_subroutine_end(func)
-            _assert(tinfo, f"Failed to create function type: {tyyaml}")
+            _assert(tinfo is not None, f"Failed to create function type: {tyyaml}")
             return self._parse_tyyaml_recur(tyyaml[2:], tinfo)
         # PTMF
         if spec == "(ptmf)":
@@ -177,7 +176,7 @@ class TyyamlParser:
         funcargs = []
         for arg in args:
             funcarg = self.visitor.visit_function_arg(func, arg)
-            _assert(funcarg, f"Failed to create function arg type")
+            _assert(funcarg is not None, f"Failed to create function arg type")
             funcargs.append(funcarg)
         return funcargs
 
@@ -189,7 +188,7 @@ class TyyamlParser:
             _assert(name, f"Invalid name: {ident[1:-1]}")
             self.import_named(name) # Ensure the type is imported before we reference it
             tinfo = self.visitor.visit_named(name)
-            _assert(tinfo, f"Failed to get type by name: {name}")
+            _assert(tinfo is not None, f"Failed to get type by name: {name}")
             return tinfo
         # base types
         tinfo = None
@@ -225,5 +224,5 @@ class TyyamlParser:
             tinfo = self.visitor.visit_f128()
         else:
             raise RuntimeError(f"Unknown base type: {ident} (<- this should have quotes if it's a named type)")
-        _assert(tinfo, f"Failed to get base type: {ident}")
+        _assert(tinfo is not None, f"Failed to get base type: {ident}")
         return tinfo
