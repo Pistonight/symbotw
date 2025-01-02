@@ -18,7 +18,10 @@ pub struct Bundler {
 
 macro_rules! import_builtin {
     ($libs: ident, $path: literal) => {
-        $libs.insert($path.to_string(), include_str!(concat!("../python/", $path, ".py")))
+        $libs.insert(
+            $path.to_string(),
+            include_str!(concat!("../python/", $path, ".py")),
+        )
     };
 }
 
@@ -49,12 +52,12 @@ impl Bundler {
                 "uniondef",
                 "memberdef",
                 "json",
-                "run"
-            ]
+                "run",
+            ],
         }
     }
-    
-    /// Import the frontend script 
+
+    /// Import the frontend script
     pub fn import_frontend(&mut self, frontend: Frontend) {
         let libs = &mut self.builtin_libs;
         match frontend {
@@ -76,10 +79,19 @@ impl Bundler {
         let mut out_script = String::new();
         let mut stack = Vec::new();
 
-        let import_script = self.main_imports.iter()
-        .map(|x| format!("import {x}\n")).collect::<Vec<_>>().join("");
+        let import_script = self
+            .main_imports
+            .iter()
+            .map(|x| format!("import {x}\n"))
+            .collect::<Vec<_>>()
+            .join("");
 
-        self.process_script_recur(&import_script, &mut stack, &mut out_imports, &mut out_script)?;
+        self.process_script_recur(
+            &import_script,
+            &mut stack,
+            &mut out_imports,
+            &mut out_script,
+        )?;
         self.process_script_recur(main_script, &mut stack, &mut out_imports, &mut out_script)?;
 
         let mut out = String::new();
@@ -93,9 +105,13 @@ impl Bundler {
         Ok(out)
     }
 
-    fn process_script_recur(&mut self, script: &str, import_stack: &mut Vec<String>, 
-        out_imports: &mut String, out_script: &mut String) -> anyhow::Result<()> {
-
+    fn process_script_recur(
+        &mut self,
+        script: &str,
+        import_stack: &mut Vec<String>,
+        out_imports: &mut String,
+        out_script: &mut String,
+    ) -> anyhow::Result<()> {
         let mut current_script = String::new();
 
         for line in script.lines() {
@@ -105,7 +121,7 @@ impl Bundler {
                     // not an import
                     current_script.push_str(line);
                     current_script.push('\n');
-                },
+                }
                 Some(lib) => {
                     if !self.imported_libs.insert(lib.to_string()) {
                         continue; // already imported
@@ -118,11 +134,16 @@ impl Bundler {
                             // python lib, just write the import statement
                             out_imports.push_str(line);
                             out_imports.push('\n');
-                        },
+                        }
                         Some(lib_content) => {
                             // bundle in the script content
                             import_stack.push(lib.to_string());
-                            self.process_script_recur(lib_content, import_stack, out_imports, out_script)?;
+                            self.process_script_recur(
+                                lib_content,
+                                import_stack,
+                                out_imports,
+                                out_script,
+                            )?;
                             import_stack.pop();
                         }
                     }
@@ -132,20 +153,18 @@ impl Bundler {
 
         out_script.push_str(&current_script);
         Ok(())
-
     }
-
 }
 fn get_import_lib_name_from_line(line: &str) -> Option<&str> {
     if let Some(lib) = line.strip_prefix("import ") {
         let lib = lib.trim_end();
         return Some(lib);
-    } 
+    }
     if let Some(lib) = line.strip_prefix("from ") {
         let mut parts = lib.split_whitespace();
         if let Some(lib) = parts.next() {
-            if let Some(i)  = parts.next() {
-                if i== "import" {
+            if let Some(i) = parts.next() {
+                if i == "import" {
                     return Some(lib);
                 }
             }

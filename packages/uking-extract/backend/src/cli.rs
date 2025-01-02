@@ -43,7 +43,7 @@ impl TryFrom<CLI> for Options {
         let (e, o, f, d) = match (value.elf, value.output, value.func, value.data) {
             (Some(e), Some(o), Some(f), Some(d)) => (e.into(), o.into(), f.into(), d.into()),
             (e, o, f, d) => {
-                let botw = common::find_botw()
+                let botw = uking_extract_common::find_botw()
                     .ok_or(Error::BotwNotFound)
                     .attach_printable(
                         "Please run inside botw decompile project or specify paths manually",

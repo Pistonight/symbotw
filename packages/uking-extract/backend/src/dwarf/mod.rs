@@ -14,7 +14,7 @@ use crate::parsed::{
     AddrType, AddressInfo, DataInfo, FuncInfo, TypeInfo, TypePrim, TypesStage0, TypesStage1,
     TypesStage6,
 };
-use common::ProgressPrinter;
+use uking_extract_common::ProgressPrinter;
 
 mod entry_integer;
 mod entry_name;
@@ -133,7 +133,7 @@ pub enum Error {
 
 macro_rules! process_units {
     ($units:ident, $desc:literal, $unit:ident, $root:ident, $block:block) => {{
-        let progress = common::ProgressPrinter::new($units.len(), $desc);
+        let progress = uking_extract_common::ProgressPrinter::new($units.len(), $desc);
         for (i, $unit) in $units.iter().enumerate() {
             progress.print(i, $unit.name);
             let mut tree = $unit.tree()?;
@@ -626,18 +626,16 @@ fn try_add_or_merge_info(
             .attach_printable(format!("Old Info: {}", old_info))
             .attach_printable(format!("New Info: {}", addr_info))?;
         return Ok(true);
-    } else {
-        if let Some(uking_address) = uking_symbols.remove(linkage_name) {
-            // replace name in case an alt name is used for ctor/dtor
-            if addr_info.name != linkage_name {
-                addr_info.name = linkage_name.to_string();
-            }
-            addr_info.uking_address = uking_address;
-            data_type.insert(linkage_name.to_string(), addr_info);
-            return Ok(true);
+    } else if let Some(uking_address) = uking_symbols.remove(linkage_name) {
+        // replace name in case an alt name is used for ctor/dtor
+        if addr_info.name != linkage_name {
+            addr_info.name = linkage_name.to_string();
         }
-        // if there's no uking_address, it's not a symbol that we care
+        addr_info.uking_address = uking_address;
+        data_type.insert(linkage_name.to_string(), addr_info);
+        return Ok(true);
     }
+    // if there's no uking_address, it's not a symbol that we care
 
     Ok(false)
 }

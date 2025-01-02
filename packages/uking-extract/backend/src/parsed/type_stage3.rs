@@ -1,7 +1,9 @@
+#![allow(clippy::collapsible_if)]
+
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::{Arc, RwLock};
 
-use common::ProgressPrinter;
+use uking_extract_common::ProgressPrinter;
 
 use crate::worker::Pool;
 

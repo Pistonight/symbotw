@@ -94,19 +94,17 @@ impl TypeYaml for AddressDef {
         if let Some(t) = &self.ty_yaml {
             s.push_str(&format!("    type: [ {} ] \n", t));
         }
-        if self.is_func {
-            if !self.args.is_empty() {
-                s.push_str("    args:\n");
-                for (name, ty) in &self.args {
-                    s.push_str("      - { ");
-                    if let Some(name) = name {
-                        s.push_str(&format!("name: '{}', ", name));
-                    }
-                    if let Some(ty) = ty {
-                        s.push_str(&format!("type: [ {} ]", ty));
-                    }
-                    s.push_str(" }\n");
+        if self.is_func && !self.args.is_empty() {
+            s.push_str("    args:\n");
+            for (name, ty) in &self.args {
+                s.push_str("      - { ");
+                if let Some(name) = name {
+                    s.push_str(&format!("name: '{}', ", name));
                 }
+                if let Some(ty) = ty {
+                    s.push_str(&format!("type: [ {} ]", ty));
+                }
+                s.push_str(" }\n");
             }
         }
         s

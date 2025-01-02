@@ -1,5 +1,5 @@
 [package]
-name = "common"
+name = "uking-extract-common"
 version = "0.0.0"
 edition = "2021"
 description = "Common utils for uking-extract"

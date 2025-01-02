@@ -1,3 +1,4 @@
+use derive_more::derive::Deref;
 use error_stack::{report, Result, ResultExt};
 use gimli::{
     Abbreviations, AttributeValue, DW_AT_declaration, DW_AT_external, DwTag, UnitSectionOffset,
@@ -8,21 +9,15 @@ use crate::parsed::NamespaceMap;
 use super::{Dwarf, Error, In, Node, Tree, Unit, UnitHeader, UnitOffset, DIE};
 
 /// A Compile Unit in .debug_info
+#[derive(Deref)]
 pub struct UnitCtx<'d, 'i> {
     pub offset: usize,
+    #[deref]
     pub unit: Unit<'i>,
     pub header: UnitHeader<'i>,
     pub abbrevs: Abbreviations,
     pub dwarf: &'d Dwarf<'i>,
     pub name: &'i str,
-}
-
-impl<'d, 'i> std::ops::Deref for UnitCtx<'d, 'i> {
-    type Target = Unit<'i>;
-    #[inline]
-    fn deref(&self) -> &Self::Target {
-        &self.unit
-    }
 }
 
 macro_rules! err_ctx {

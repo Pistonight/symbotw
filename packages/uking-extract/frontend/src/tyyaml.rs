@@ -1,5 +1,6 @@
 use std::marker::PhantomData;
 
+use derive_more::derive::{Deref, DerefMut};
 use serde::{de::Visitor, Deserialize};
 use serde_json::json;
 use serde_yaml_ng::Value;
@@ -256,7 +257,7 @@ impl Data {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Deref, DerefMut)]
 #[repr(transparent)]
 pub struct OrderedMap<T>(Vec<(String, T)>);
 impl<'de, T: Deserialize<'de>> Deserialize<'de> for OrderedMap<T> {
@@ -288,19 +289,6 @@ impl<'de, T: Deserialize<'de>> Deserialize<'de> for OrderedMap<T> {
             }
         }
         deserializer.deserialize_map(V(PhantomData))
-    }
-}
-
-impl<T> std::ops::Deref for OrderedMap<T> {
-    type Target = Vec<(String, T)>;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl<T> std::ops::DerefMut for OrderedMap<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
     }
 }
 

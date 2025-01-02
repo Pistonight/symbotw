@@ -5,7 +5,7 @@ use error_stack::Result;
 use super::unit::{err_ctx, opt_ctx};
 use super::{Error, UnitCtx, UnitOffset, DIE};
 
-impl<'d, 'i> UnitCtx<'d, 'i> {
+impl<'i> UnitCtx<'_, 'i> {
     /// Get the DW_AT_type converted to global offset, or `usize::MAX` if the type is void
     pub fn get_entry_type_global_offset(&self, entry: &DIE<'i, '_, '_>) -> Result<usize, Error> {
         match self.get_entry_type_offset_optional(entry)? {
