@@ -16,9 +16,9 @@ pub struct CLI {
 #[derive(Debug, Clone, clap::Subcommand)]
 pub enum Subcommand {
     /// Extract data types from DWARF info from the botw decompile project
-    Extract(backend::CLI),
+    Extract(uking_extract_backend::CLI),
     /// Generate a Python script to import extract data.
-    Python(frontend::CLI),
+    Python(uking_extract_frontend::CLI),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -32,13 +32,15 @@ pub enum Error {
 fn main() -> ExitCode {
     let CLI { subcommand } = CLI::parse();
     match subcommand {
-        Subcommand::Extract(cli) => common::run(|| {
-            let options = backend::Options::try_from(cli).change_context(Error::Backend)?;
-            backend::extract(&options).change_context(Error::Backend)
+        Subcommand::Extract(cli) => uking_extract_common::run(|| {
+            let options =
+                uking_extract_backend::Options::try_from(cli).change_context(Error::Backend)?;
+            uking_extract_backend::extract(&options).change_context(Error::Backend)
         }),
-        Subcommand::Python(cli) => common::run(|| {
-            let options = frontend::Options::try_from(cli).change_context(Error::Frontend)?;
-            if let Err(e) = frontend::run(&options) {
+        Subcommand::Python(cli) => uking_extract_common::run(|| {
+            let options =
+                uking_extract_frontend::Options::try_from(cli).change_context(Error::Frontend)?;
+            if let Err(e) = uking_extract_frontend::run(&options) {
                 // FIXME: consolidate anyhow and error-stack error handling
                 eprintln!("{:#?}", e);
                 return Err(report!(Error::Frontend));

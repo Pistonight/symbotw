@@ -44,7 +44,7 @@ impl<'a> AsRef<BTreeMap<usize, Namespace<'a>>> for NamespaceMap<'a> {
     }
 }
 
-impl<'a> NamespaceMap<'a> {
+impl NamespaceMap<'_> {
     /// Get the name prefixed by the namespace at the given offset
     pub fn get(&self, offset: usize, name: &str) -> Result<String, TypeError> {
         let ns = self

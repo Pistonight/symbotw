@@ -1,0 +1,9 @@
+version: '3'
+
+tasks:
+  check:
+    desc: Check for issues
+    cmds:
+      - cargo clippy --all-features --all-targets -- -D warnings
+      - cargo fmt --check
+

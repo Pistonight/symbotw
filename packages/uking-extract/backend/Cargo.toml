@@ -1,5 +1,5 @@
 [package]
-name = "backend"
+name = "uking-extract-backend"
 version = "0.0.0"
 edition = "2021"
 publish = false
@@ -7,13 +7,14 @@ description = "Backend for uking-extract to read data from DWARF info"
 
 [dependencies]
 clap = { version = "4.5.23", features = ["derive"] }
-common = { path = "../common" }
+uking-extract-common = { path = "../common" }
 derivative = "2.2.0"
 elf = "0.7.4"
 error-stack = "0.5.0"
-gimli = "0.31.0"
+gimli = "0.31.1"
 num_cpus = "1.16.0"
-thiserror = "1.0.63"
+thiserror = "2.0.9"
+derive_more = { version = "1.0.0", features = ["full"] }
 
 [features]
 default = []

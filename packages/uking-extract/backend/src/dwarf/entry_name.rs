@@ -5,7 +5,7 @@ use error_stack::Result;
 use super::unit::{err_ctx, opt_ctx};
 use super::{Error, UnitCtx, DIE};
 
-impl<'d, 'i> UnitCtx<'d, 'i> {
+impl<'i> UnitCtx<'_, 'i> {
     /// Get the DW_AT_name of a DIE
     pub fn get_entry_name(&self, entry: &DIE<'i, '_, '_>) -> Result<&'i str, Error> {
         let offset = self.to_global_offset(entry.offset());

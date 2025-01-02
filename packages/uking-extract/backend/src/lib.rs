@@ -1,15 +1,15 @@
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 
-use common::ProgressPrinter;
 use error_stack::{Result, ResultExt};
 use parsed::{AddrType, AddressInfo, DataInfo, TypeYaml};
+use uking_extract_common::ProgressPrinter;
 
+mod cli;
 mod dwarf;
 mod parsed;
 mod uking;
 mod worker;
-mod cli;
 pub use cli::*;
 
 pub struct Options {
@@ -158,7 +158,7 @@ pub fn extract(options: &Options) -> Result<(), Error> {
     println!("  data: {}", data_count);
 
     // Write Output
-    common::ensure_parent_exists(&options.output).change_context(Error::WriteFile)?;
+    uking_extract_common::ensure_parent_exists(&options.output).change_context(Error::WriteFile)?;
     let output_path = &options.output;
     let output_path_str = output_path.display().to_string();
     std::fs::write(output_path, type_yaml).change_context(Error::WriteFile)?;

@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-use backend::Options;
+use uking_extract_backend::Options;
 
 fn main() -> ExitCode {
     // extract the example ELF
@@ -12,5 +12,5 @@ fn main() -> ExitCode {
         elf: PathBuf::from("botw-decomp/build/uking"),
     };
 
-    common::run(|| backend::extract(&options))
+    uking_extract_common::run(|| uking_extract_backend::extract(&options))
 }

@@ -9,7 +9,7 @@ use gimli::{
 use super::unit::{bad, err_ctx, opt_ctx};
 use super::{Error, In, UnitCtx, UnitOffset, DIE};
 
-impl<'d, 'i> UnitCtx<'d, 'i> {
+impl<'i> UnitCtx<'_, 'i> {
     /// Get the DW_TAG_vtable_elem_location of a DIE, return None if not virtual
     pub fn get_entry_vtable_elem_location(
         &self,

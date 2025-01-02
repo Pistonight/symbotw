@@ -2,7 +2,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use error_stack::{report, Result, ResultExt};
 
-use common::ProgressPrinter;
+use uking_extract_common::ProgressPrinter;
 
 use super::{
     Bucket, BucketType, EnumDef, EnumInfo, MemberDef, Offset, StructDef, StructInfo, TypeComp,
@@ -185,7 +185,7 @@ impl TypesStage6 {
         } else {
             name2def.insert(key.clone(), def);
         }
-        return Ok(name2def.get(&key));
+        Ok(name2def.get(&key))
     }
 
     /// Get the type info for creating def for the bucket

@@ -89,7 +89,7 @@ impl TryFrom<CLI> for Options {
         let (input, output) = match (value.input, value.output) {
             (Some(input), Some(output)) => (input.into(), output.into()),
             (i, o) => {
-                let botw = common::find_botw()
+                let botw = uking_extract_common::find_botw()
                     .ok_or(Error::BotwNotFound)
                     .attach_printable("Please specify --input and --output manually")?;
                 let input = i.map_or_else(

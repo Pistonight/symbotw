@@ -8,7 +8,7 @@ use error_stack::{Result, ResultExt};
 use super::unit::{bad, err_ctx, opt_ctx};
 use super::{Error, In, UnitCtx, DIE};
 
-impl<'d, 'i> UnitCtx<'d, 'i> {
+impl<'i> UnitCtx<'_, 'i> {
     /// Get the DW_AT_count of a DIE
     pub fn get_entry_count(&self, entry: &DIE<'i, '_, '_>) -> Result<Option<usize>, Error> {
         Ok(self

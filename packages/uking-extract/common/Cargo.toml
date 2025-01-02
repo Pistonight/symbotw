@@ -1,5 +1,5 @@
 [package]
-name = "common"
+name = "uking-extract-common"
 version = "0.0.0"
 edition = "2021"
 description = "Common utils for uking-extract"
@@ -7,4 +7,4 @@ publish = false
 
 [dependencies]
 dunce = "1.0.5"
-terminal_size = "0.3.0"
+terminal_size = "0.4.1"
