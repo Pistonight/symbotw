@@ -1,0 +1,13 @@
+[package]
+name = "uking-relocate"
+version = "0.0.0"
+edition = "2021"
+description = "Tool for relocating uking binaries"
+publish = false
+
+[dependencies]
+anyhow = "1.0.95"
+clap = { version = "4.5.23", features = ["derive"] }
+sha256 = { version = "1.5.0", default-features = false }
+thiserror = "2.0.9"
+uking-relocate-lib = { path = "./lib", features = ["loader-data"] }

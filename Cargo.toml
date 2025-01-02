@@ -5,6 +5,6 @@ members = [
     "packages/uking-extract/frontend",
     # "packages/uking-extract/frontend-ida",
     # "packages/uking-extract/frontend-ghidra",
-    "packages/uking-extract",
+    "packages/uking-extract", "packages/uking-relocate/lib", "packages/uking-relocate",
 ]
 resolver = "2"
