@@ -16,7 +16,7 @@ pub enum Env {
     X150DLC,
     /// ver 1.6.0 + DLC ver 3
     #[deku(id = 0x04)]
-    X160DLC
+    X160DLC,
 }
 
 impl Env {

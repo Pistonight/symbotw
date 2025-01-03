@@ -1,11 +1,13 @@
-use clap::Parser;
 use anyhow::{anyhow, bail};
+use clap::Parser;
 
-use crate::{memory::{align_down, align_up}, module::ModuleType};
+use crate::{
+    memory::{align_down, align_up},
+    module::ModuleType,
+};
 
 #[derive(Debug, Parser)]
 pub struct Cli {
-
     /// Path to the game's sdk module.
     ///
     /// This must be a decompressed ELF. This tool will automatically
@@ -21,7 +23,7 @@ pub struct Cli {
     #[clap(short, long, default_value = "program.blfm")]
     pub output: String,
 
-    /// Simulate allocation as if DLC is installed. 
+    /// Simulate allocation as if DLC is installed.
     ///
     /// This only affects singleton allocation
     #[clap(long)]
@@ -40,7 +42,7 @@ pub struct Cli {
     /// Module can be: [rtld (alias: nnrtld), main (alias: uking, u-king), subsdk0 (alias: multimedia), sdk (alias: nnsdk)],
     /// .nss postfixes are ignored. rtld is the same as not specifying a module.
     ///
-    /// The start and end offsets are specified as relative offsets 
+    /// The start and end offsets are specified as relative offsets
     /// to --start or module if specified. The end offset is exclusive.
     /// They must be in hexadecimal and the leading 0x is optional and ignored
     ///
@@ -51,18 +53,24 @@ pub struct Cli {
 
 fn parse_region(arg: &str) -> anyhow::Result<RegionArg> {
     let (module, arg) = match arg.strip_prefix("[") {
-        None => {
-            (ModuleType::None, arg)
-        }
+        None => (ModuleType::None, arg),
         Some(rest) => {
             let rest = rest.trim_start();
             let mut parts = rest.splitn(2, "]:");
-            let module_str = parts.next().ok_or_else(|| anyhow!("invalid region syntax: cannot parse module"))?.trim();
-            let rest = parts.next().ok_or_else(|| anyhow!("invalid region syntax: missing address range after module"))?;
+            let module_str = parts
+                .next()
+                .ok_or_else(|| anyhow!("invalid region syntax: cannot parse module"))?
+                .trim();
+            let rest = parts.next().ok_or_else(|| {
+                anyhow!("invalid region syntax: missing address range after module")
+            })?;
             if parts.next().is_some() {
                 bail!("invalid region syntax: too many colons")
             }
-            let module_str = module_str.strip_suffix(".nss").unwrap_or(module_str).to_ascii_lowercase();
+            let module_str = module_str
+                .strip_suffix(".nss")
+                .unwrap_or(module_str)
+                .to_ascii_lowercase();
             let module = match module_str.as_str() {
                 "rtld" | "nnrtld" => ModuleType::None,
                 "main" | "uking" | "u-king" => ModuleType::Main,
@@ -76,8 +84,14 @@ fn parse_region(arg: &str) -> anyhow::Result<RegionArg> {
         }
     };
     let mut parts = arg.splitn(2, '-');
-    let start = parts.next().ok_or_else(|| anyhow!("invalid region syntax: missing start address"))?.trim();
-    let end = parts.next().ok_or_else(|| anyhow!("invalid region syntax: missing end address"))?.trim();
+    let start = parts
+        .next()
+        .ok_or_else(|| anyhow!("invalid region syntax: missing start address"))?
+        .trim();
+    let end = parts
+        .next()
+        .ok_or_else(|| anyhow!("invalid region syntax: missing end address"))?
+        .trim();
     if parts.next().is_some() {
         bail!("invalid region syntax: too many dashes")
     }
@@ -89,25 +103,21 @@ fn parse_region(arg: &str) -> anyhow::Result<RegionArg> {
         bail!("invalid region: start must be less than end")
     }
 
-    Ok(RegionArg {
-        module,
-        start,
-        end,
-    })
+    Ok(RegionArg { module, start, end })
 }
 
 fn parse_u32(arg: &str) -> anyhow::Result<u32> {
-    let arg = arg.trim_start_matches(|x| x=='0' || x=='x' || x=='X');
+    let arg = arg.trim_start_matches(['0', 'x', 'X']);
     if arg.is_empty() {
-        return Ok(0)
+        return Ok(0);
     }
     Ok(u32::from_str_radix(arg, 16)?)
 }
 
 fn parse_u64(arg: &str) -> anyhow::Result<u64> {
-    let arg = arg.trim_start_matches(|x| x=='0' || x=='x' || x=='X');
+    let arg = arg.trim_start_matches(['0', 'x', 'X']);
     if arg.is_empty() {
-        return Ok(0)
+        return Ok(0);
     }
     Ok(u64::from_str_radix(arg, 16)?)
 }
@@ -122,4 +132,3 @@ pub struct RegionArg {
     /// The end offset
     pub end: u32,
 }
-

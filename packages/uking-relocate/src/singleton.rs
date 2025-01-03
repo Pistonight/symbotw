@@ -8,13 +8,13 @@ pub fn pause_menu_data_mgr(env: Env) -> SingletonAlloc {
     } else {
         ((0x0096b1cc, None), 0x0096b23c)
     };
-    let rel_start = 0xaaaaaaa0;// TODO
+    let rel_start = 0xaaaaaaa0; // TODO
 
     SingletonAlloc {
         id: Singleton::PauseMenuDataMgr,
         rel_start,
         size,
         create,
-        ctor_invoke
+        ctor_invoke,
     }
 }

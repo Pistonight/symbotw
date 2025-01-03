@@ -2,7 +2,6 @@ use std::path::Path;
 
 use anyhow::{anyhow, bail};
 
-
 pub struct ModuleData {
     pub rtld: Vec<u8>,
     pub main: Vec<u8>,
@@ -32,14 +31,19 @@ impl ModuleData {
                 println!("sdk version matches 1.6.0");
                 Modules::new_1_6_0()
             }
-            _ => bail!("the input files does not match a known version of the game")
+            _ => bail!("the input files does not match a known version of the game"),
         };
 
-        let file_name = Path::new(path).file_name().ok_or_else(|| anyhow!("cannot get file name"))?
-        .to_os_string().into_string().map_err(|_| anyhow!("cannot convert file name to string"))?;
+        let file_name = Path::new(path)
+            .file_name()
+            .ok_or_else(|| anyhow!("cannot get file name"))?
+            .to_os_string()
+            .into_string()
+            .map_err(|_| anyhow!("cannot convert file name to string"))?;
 
-        let directory = Path::new(path).parent().ok_or_else(|| anyhow!("cannot get parent directory"))?;
-
+        let directory = Path::new(path)
+            .parent()
+            .ok_or_else(|| anyhow!("cannot get parent directory"))?;
 
         let rtld_path = directory.join(file_name.replace("sdk", "rtld"));
         println!("rtld    : {}", rtld_path.display());
@@ -52,7 +56,7 @@ impl ModuleData {
         let subsdk0_path = directory.join(file_name.replace("sdk", "subsdk0"));
         println!("subsdk0 : {}", subsdk0_path.display());
         let subsdk0_data = std::fs::read(&subsdk0_path)?;
-        
+
         println!("sdk     : {}", path);
 
         let data = Self {
@@ -64,9 +68,7 @@ impl ModuleData {
         };
 
         Ok(data)
-
     }
-
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -167,7 +169,7 @@ pub enum ModuleType {
     /// subsdk0 aka multimedia
     Subsdk0,
     /// sdk aka nnSdk
-    Sdk
+    Sdk,
 }
 
 impl std::fmt::Display for ModuleType {

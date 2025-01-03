@@ -19,17 +19,15 @@ pub struct ElfWrapper<'data> {
     elf: ElfBytes<'data, LittleEndian>,
     /// program segments
     pub segments: ParsingTable<'data, LittleEndian, ProgramHeader>,
-
 }
 
 impl<'data> ElfWrapper<'data> {
     pub fn try_parse(data: &'data [u8]) -> anyhow::Result<Self> {
         let elf = ElfBytes::minimal_parse(data)?;
-        let segments = elf.segments().ok_or_else(|| anyhow!("unexpected empty program header table"))?;
-        Ok(Self {
-            elf,
-            segments,
-        })
+        let segments = elf
+            .segments()
+            .ok_or_else(|| anyhow!("unexpected empty program header table"))?;
+        Ok(Self { elf, segments })
     }
 
     /// Load the defined dynamic symbols from this ELF file and store them by name
@@ -37,8 +35,15 @@ impl<'data> ElfWrapper<'data> {
     /// start is the absolute address of this module
     ///
     /// Return how many symbols are loaded
-    pub fn load_dynamic_symbols(&self, module: ModuleType, start: u64, table: &mut BTreeMap<String, SymbolValue>) -> anyhow::Result<u32> {
-        let (dynsyms, strtab) = self.dynamic_symbol_table()?.ok_or_else(|| anyhow!("missing dynamic symbol table"))?;
+    pub fn load_dynamic_symbols(
+        &self,
+        module: ModuleType,
+        start: u64,
+        table: &mut BTreeMap<String, SymbolValue>,
+    ) -> anyhow::Result<u32> {
+        let (dynsyms, strtab) = self
+            .dynamic_symbol_table()?
+            .ok_or_else(|| anyhow!("missing dynamic symbol table"))?;
         let mut count = 0;
         for sym in dynsyms {
             if sym.is_undefined() {
@@ -91,14 +96,18 @@ impl<'data> ElfWrapper<'data> {
 
     /// Get the iterator for the .rela.dyn section
     pub fn rela_dyn(&self) -> anyhow::Result<ParsingIterator<'data, LittleEndian, Rela>> {
-        let rela_dyn = self.section_header_by_name(".rela.dyn")?.ok_or_else(|| anyhow!("missing .rela.dyn section"))?;
+        let rela_dyn = self
+            .section_header_by_name(".rela.dyn")?
+            .ok_or_else(|| anyhow!("missing .rela.dyn section"))?;
         let rela_dyn = self.section_data_as_relas(&rela_dyn)?;
         Ok(rela_dyn)
     }
 
     /// Get the iterator for the .rela.plt section
     pub fn rela_plt(&self) -> anyhow::Result<ParsingIterator<'data, LittleEndian, Rela>> {
-        let rela_plt = self.section_header_by_name(".rela.plt")?.ok_or_else(|| anyhow!("missing .rela.plt section"))?;
+        let rela_plt = self
+            .section_header_by_name(".rela.plt")?
+            .ok_or_else(|| anyhow!("missing .rela.plt section"))?;
         let rela_plt = self.section_data_as_relas(&rela_plt)?;
         Ok(rela_plt)
     }
@@ -120,16 +129,22 @@ impl DynamicSymbolTables {
         let mut magic = HashMap::new();
         // these are guesses... we can probably verify
         // but it's not really important
-        magic.insert("__EX_start".to_string(), SymbolValue {
-            address: start,
-            weak: false,
-            protected: false,
-        });
-        magic.insert("__EX_end".to_string(), SymbolValue {
-            address: start + size as u64,
-            weak: false,
-            protected: false,
-        });
+        magic.insert(
+            "__EX_start".to_string(),
+            SymbolValue {
+                address: start,
+                weak: false,
+                protected: false,
+            },
+        );
+        magic.insert(
+            "__EX_end".to_string(),
+            SymbolValue {
+                address: start + size as u64,
+                weak: false,
+                protected: false,
+            },
+        );
         Self {
             rtld: BTreeMap::new(),
             main: BTreeMap::new(),

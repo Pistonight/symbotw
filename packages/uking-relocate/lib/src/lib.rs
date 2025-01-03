@@ -20,7 +20,7 @@ pub struct Program {
     /// Allocation info for the singletons. These are derived from the game
     #[deku(count = "singleton_len")]
     singletons: Vec<SingletonAlloc>,
-    
+
     /// Physical address of the start of the program region (where nnrtld is loaded), must be page aligned (4KB)
     pub program_start: u64,
 
@@ -116,7 +116,7 @@ impl ProgramRegion {
             rel_start,
             permissions,
             data_len,
-            data
+            data,
         }
     }
 
@@ -139,14 +139,14 @@ pub struct SingletonAlloc {
     /// Size of the object
     pub size: u32,
     /// Range of the instructions to run to create the singleton. The end is exclusive.
-    /// 
+    ///
     /// The CPU will set up SP, then jump to the start of the range.
     /// If no end is provided, it will execute until RET
     pub create: (u32, Option<u32>),
     /// Address of the insturction that BLs to the constructor
     /// When constructing the singleton at runtime,
     /// CPU will inject the singleton address into X0
-    pub ctor_invoke: u32
+    pub ctor_invoke: u32,
 }
 
 /// Singleton identifiers
@@ -156,4 +156,3 @@ pub enum Singleton {
     #[deku(id = 0x01)]
     PauseMenuDataMgr,
 }
-

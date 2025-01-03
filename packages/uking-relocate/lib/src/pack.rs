@@ -18,15 +18,20 @@ pub enum Error {
     Decompress(String),
     #[error("fail to deserialize the program: {0}")]
     Deserialize(String),
-
 }
 
 /// Pack the program into a Blueflame image for IST Simulator
 pub fn pack_blueflame(program: &Program) -> Result<Vec<u8>, Error> {
-    let data = program.to_bytes().map_err(|e| Error::Serialize(e.to_string()))?;
+    let data = program
+        .to_bytes()
+        .map_err(|e| Error::Serialize(e.to_string()))?;
     let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
-    encoder.write_all(&data).map_err(|e| Error::Compress(e.to_string()))?;
-    let data = encoder.finish().map_err(|e| Error::Compress(e.to_string()))?;
+    encoder
+        .write_all(&data)
+        .map_err(|e| Error::Compress(e.to_string()))?;
+    let data = encoder
+        .finish()
+        .map_err(|e| Error::Compress(e.to_string()))?;
     Ok(data)
 }
 
@@ -34,7 +39,10 @@ pub fn pack_blueflame(program: &Program) -> Result<Vec<u8>, Error> {
 pub fn unpack_blueflame(data: &[u8]) -> Result<Program, Error> {
     let mut decoder = flate2::read::GzDecoder::new(data);
     let mut data = Vec::new();
-    decoder.read_to_end(&mut data).map_err(|e| Error::Decompress(e.to_string()))?;
-    let (_, program) = Program::from_bytes((&data, 0)).map_err(|e| Error::Deserialize(e.to_string()))?;
+    decoder
+        .read_to_end(&mut data)
+        .map_err(|e| Error::Decompress(e.to_string()))?;
+    let (_, program) =
+        Program::from_bytes((&data, 0)).map_err(|e| Error::Deserialize(e.to_string()))?;
     Ok(program)
 }

@@ -10,8 +10,8 @@ mod module;
 mod singleton;
 
 use cli::Cli;
-use module::ModuleData;
 use memory::Memory;
+use module::ModuleData;
 use uking_relocate_lib::{Env, ProgramBuilder};
 
 fn main() -> ExitCode {
