@@ -9,3 +9,4 @@ See the license for each package in their directories. Packages are MIT unless n
 
 - symbotw: TODO: library generated from decomp project + some extra code for linking with both 1.5.0/1.6.0
 - [uking-extract](./packages/uking-extract/): Extract DWARF information from the decomp project to import into a decompiler database such as IDA
+- [uking-relocate](./packages/uking-relocate/): Simulate loading ExeFS into memory and perform relocation
