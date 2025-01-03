@@ -3,8 +3,8 @@ members = [
     "packages/uking-extract/common",
     "packages/uking-extract/backend",
     "packages/uking-extract/frontend",
-    # "packages/uking-extract/frontend-ida",
-    # "packages/uking-extract/frontend-ghidra",
-    "packages/uking-extract", "packages/uking-relocate/lib", "packages/uking-relocate",
+    "packages/uking-extract", 
+    "packages/uking-relocate/lib",
+    "packages/uking-relocate",
 ]
 resolver = "2"
