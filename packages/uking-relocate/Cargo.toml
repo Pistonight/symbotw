@@ -8,6 +8,8 @@ publish = false
 [dependencies]
 anyhow = "1.0.95"
 clap = { version = "4.5.23", features = ["derive"] }
-sha256 = { version = "1.5.0", default-features = false }
+derive_more = { version = "1.0.0", features = ["full"] }
+elf = "0.7.4"
+memchr = "2.7.4"
 thiserror = "2.0.9"
-uking-relocate-lib = { path = "./lib", features = ["loader-data"] }
+uking-relocate-lib = { path = "./lib" }

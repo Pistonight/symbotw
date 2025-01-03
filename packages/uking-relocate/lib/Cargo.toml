@@ -6,7 +6,7 @@ publish = false
 description = "Library for uking-relocate"
 
 [dependencies]
+deku = "0.18.1"
+flate2 = "1.0.35"
 serde = { version = "1.0.217", features = ["derive"] }
-
-[features]
-loader-data = [] # Enable static data used by the CLI tool
+thiserror = "2.0.9"
