@@ -7,6 +7,9 @@ mod env;
 mod pack;
 pub use pack::*;
 
+/// Singleton allocation
+pub mod singleton;
+
 pub use env::Env;
 
 /// Memory information of a program at runtime
@@ -19,25 +22,28 @@ pub struct Program {
 
     /// Allocation info for the singletons. These are derived from the game
     #[deku(count = "singleton_len")]
-    singletons: Vec<SingletonAlloc>,
+    singletons: Vec<singleton::SingletonInfo>,
 
     /// Physical address of the start of the program region (where nnrtld is loaded), must be page aligned (4KB)
     pub program_start: u64,
 
     program_regions_len: u32, // required for serialization
-
-    /// Regions of the program to load.
     #[deku(count = "program_regions_len")]
     program_regions: Vec<ProgramRegion>,
 }
 
 impl Program {
     /// Get the single allocations
-    pub fn singletons(&self) -> &[SingletonAlloc] {
+    pub fn singletons(&self) -> &[singleton::SingletonInfo] {
         &self.singletons
     }
 
-    /// Get the program regions
+    /// Get a singleton by its identifier
+    pub fn singleton_by_id(&self, id: singleton::Singleton) -> Option<&singleton::SingletonInfo> {
+        self.singletons.iter().find(|s| s.id == id)
+    }
+
+    /// Get the program regions stored in the image
     pub fn regions(&self) -> &[ProgramRegion] {
         &self.program_regions
     }
@@ -50,7 +56,7 @@ impl Program {
 /// is used to ensure that
 pub struct ProgramBuilder {
     env: Env,
-    singletons: Vec<SingletonAlloc>,
+    singletons: Vec<singleton::SingletonInfo>,
     program_start: u64,
     program_regions: Vec<ProgramRegion>,
 }
@@ -67,7 +73,7 @@ impl ProgramBuilder {
     }
 
     /// Set the singleton allocation info
-    pub fn singletons(mut self, singletons: Vec<SingletonAlloc>) -> Self {
+    pub fn singletons(mut self, singletons: Vec<singleton::SingletonInfo>) -> Self {
         self.singletons = singletons;
         self
     }
@@ -127,32 +133,4 @@ impl ProgramRegion {
     pub fn into_data(self) -> Vec<u8> {
         self.data
     }
-}
-
-/// Allocation and initialization info for a singleton
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, DekuRead, DekuWrite)]
-pub struct SingletonAlloc {
-    /// Identifier of the singleton
-    pub id: Singleton,
-    /// Start of the allocation relative to the heap_start
-    pub rel_start: u32,
-    /// Size of the object
-    pub size: u32,
-    /// Range of the instructions to run to create the singleton. The end is exclusive.
-    ///
-    /// The CPU will set up SP, then jump to the start of the range.
-    /// If no end is provided, it will execute until RET
-    pub create: (u32, Option<u32>),
-    /// Address of the insturction that BLs to the constructor
-    /// When constructing the singleton at runtime,
-    /// CPU will inject the singleton address into X0
-    pub ctor_invoke: u32,
-}
-
-/// Singleton identifiers
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, DekuRead, DekuWrite)]
-#[deku(id_type = "u8")]
-pub enum Singleton {
-    #[deku(id = 0x01)]
-    PauseMenuDataMgr,
 }

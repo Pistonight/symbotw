@@ -23,4 +23,9 @@ impl Env {
     pub const fn is_1_6_0(&self) -> bool {
         matches!(self, Env::X160 | Env::X160DLC)
     }
+
+    /// Get the offset of the main module compared to program_start
+    pub fn main_offset(&self) -> u32 {
+        0x4000
+    }
 }
