@@ -42,7 +42,11 @@ fn main_internal() -> anyhow::Result<()> {
     let memory = Memory::load(cli.start, &data)?;
 
     let program = ProgramBuilder::new(env)
-        .program(cli.start, memory.to_program_regions(&cli.regions))
+        .program(
+            cli.start,
+            memory.get_program_size(),
+            memory.to_program_regions(&cli.regions),
+        )
         .build();
 
     println!("-- packing the program...");

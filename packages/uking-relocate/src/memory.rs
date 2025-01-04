@@ -47,6 +47,8 @@ impl Memory {
         mem.load_module(ModuleType::Subsdk0, &subsdk0_elf, &module_data.info.subsdk0)?;
         mem.load_module(ModuleType::Sdk, &sdk_elf, &module_data.info.sdk)?;
 
+        mem.loaded_size = module_data.info.sdk.end;
+
         println!("-- loading dynamic symbols...");
         let mut dynamic_symbols = DynamicSymbolTables::new(start, mem.loaded_size);
         let count = rtld_elf.load_dynamic_symbols(
@@ -405,6 +407,10 @@ impl Memory {
         for region in &self.regions {
             region.copy_overlapped(rel_start, num_pages, out);
         }
+    }
+
+    pub fn get_program_size(&self) -> u32 {
+        self.loaded_size
     }
 }
 

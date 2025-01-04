@@ -26,6 +26,8 @@ pub struct Program {
 
     /// Physical address of the start of the program region (where nnrtld is loaded), must be page aligned (4KB)
     pub program_start: u64,
+    /// Size of the program region
+    pub program_size: u32,
 
     program_regions_len: u32, // required for serialization
     #[deku(count = "program_regions_len")]
@@ -58,6 +60,7 @@ pub struct ProgramBuilder {
     env: Env,
     singletons: Vec<singleton::SingletonInfo>,
     program_start: u64,
+    program_size: u32,
     program_regions: Vec<ProgramRegion>,
 }
 
@@ -68,6 +71,7 @@ impl ProgramBuilder {
             env,
             singletons: Vec::new(),
             program_start: 0,
+            program_size: 0,
             program_regions: Vec::new(),
         }
     }
@@ -79,9 +83,10 @@ impl ProgramBuilder {
     }
 
     /// Set the program regions
-    pub fn program(mut self, start: u64, regions: Vec<ProgramRegion>) -> Self {
+    pub fn program(mut self, start: u64, size: u32, regions: Vec<ProgramRegion>) -> Self {
         self.program_start = start;
         self.program_regions = regions;
+        self.program_size = size;
         self
     }
 
@@ -92,6 +97,7 @@ impl ProgramBuilder {
             singleton_len: self.singletons.len() as u32,
             singletons: self.singletons,
             program_start: self.program_start,
+            program_size: self.program_size,
             program_regions_len: self.program_regions.len() as u32,
             program_regions: self.program_regions,
         }
