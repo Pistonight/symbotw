@@ -34,6 +34,10 @@ pub trait SingletonCreator {
 
     /// Stop the execution, singleton is done created
     fn stop(&mut self) -> Result<(), Self::Error>;
+
+    /// Allocate a proxy object of the type, and put the address in the register indicated (0 for
+    /// X0, etc)
+    fn make_proxy(&mut self, obj_type: ObjType, reg: u32) -> Result<(), Self::Error>;
 }
 
 /// Allocation and initialization info for a singleton
@@ -82,6 +86,7 @@ impl SingletonInfo {
                 CreateByteCode::Jump(target) => creator.set_main_rel_pc(*target)?,
                 CreateByteCode::ExecuteToReturn => creator.execute_to_return()?,
                 CreateByteCode::Return => creator.stop()?,
+                CreateByteCode::MakeProxy(obj_type, reg) => creator.make_proxy(*obj_type, *reg)?,
             }
         }
 
@@ -116,6 +121,10 @@ pub enum CreateByteCode {
     /// Stop the execution, singleton is done created
     #[deku(id = 0x06)]
     Return,
+
+    /// Allocate a proxy object of the type, and put the address in X0
+    #[deku(id = 0x07)]
+    MakeProxy(ObjType, u32),
 }
 
 /// Singleton identifiers
@@ -140,4 +149,12 @@ impl Singleton {
             }
         }
     }
+}
+
+/// Other object type identifiers
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, DekuRead, DekuWrite)]
+#[deku(id_type = "u8")]
+pub enum ObjType {
+    #[deku(id = 0x01)]
+    TriggerParam,
 }
