@@ -7,9 +7,11 @@ publish = false
 
 [dependencies]
 anyhow = "1.0.95"
+blueflame-program = { git = "https://github.com/Pistonite/botw-ist", rev = "b786cfc406fb6ebcdc6a89af3eb51343f44e3e9a" }
+blueflame-utils = { git = "https://github.com/Pistonite/botw-ist", rev = "b786cfc406fb6ebcdc6a89af3eb51343f44e3e9a" }
 clap = { version = "4.5.23", features = ["derive"] }
 derive_more = { version = "1.0.0", features = ["full"] }
 elf = "0.7.4"
 memchr = "2.7.4"
-thiserror = "2.0.9"
-uking-relocate-lib = { path = "./lib" }
+roead = "1.0.0"
+thiserror = "2.0.11"

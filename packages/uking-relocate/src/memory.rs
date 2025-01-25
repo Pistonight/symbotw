@@ -4,7 +4,8 @@ use anyhow::{anyhow, bail};
 use elf::abi::{
     PT_LOAD, R_AARCH64_ABS64, R_AARCH64_GLOB_DAT, R_AARCH64_JUMP_SLOT, R_AARCH64_RELATIVE,
 };
-use uking_relocate_lib::ProgramRegion;
+
+use blueflame_program::ProgramRegion;
 
 use crate::{
     cli::RegionArg,
@@ -30,14 +31,14 @@ impl Memory {
             loaded_size: 0,
         };
 
-        println!("-- parsing ELF files...");
+        println!("-- [exefs] parsing ELF files...");
 
         let rtld_elf = ElfWrapper::try_parse(&module_data.rtld)?;
         let main_elf = ElfWrapper::try_parse(&module_data.main)?;
         let subsdk0_elf = ElfWrapper::try_parse(&module_data.subsdk0)?;
         let sdk_elf = ElfWrapper::try_parse(&module_data.sdk)?;
 
-        println!("-- loading modules into memory...");
+        println!("-- [exefs] loading modules into memory...");
 
         println!();
         println!("SEGMENT START      FILE_SIZE  MEM_SIZE");
@@ -49,7 +50,7 @@ impl Memory {
 
         mem.loaded_size = module_data.info.sdk.end;
 
-        println!("-- loading dynamic symbols...");
+        println!("-- [exefs] loading dynamic symbols...");
         let mut dynamic_symbols = DynamicSymbolTables::new(start, mem.loaded_size);
         let count = rtld_elf.load_dynamic_symbols(
             ModuleType::None,
@@ -103,7 +104,10 @@ impl Memory {
             &module_data.info.sdk,
             &dynamic_symbols,
         )?;
-        println!("-- applied {} relocations across all modules", count);
+        println!(
+            "-- [exefs] applied {} relocations across all modules",
+            count
+        );
 
         Ok(mem)
     }
@@ -180,7 +184,7 @@ impl Memory {
         info: &ModuleInfo,
         dynamic: &DynamicSymbolTables,
     ) -> anyhow::Result<u32> {
-        println!("-- applying relocation to {}", module);
+        println!("-- [exefs] applying relocation to {}", module);
 
         let mut module_regions = self
             .regions
@@ -356,7 +360,7 @@ impl Memory {
     }
 
     pub fn to_program_regions(&self, regions: &[RegionArg]) -> Vec<ProgramRegion> {
-        println!("-- copying program memory...");
+        println!("-- [exefs] copying program memory...");
         let mut page_starts = BTreeSet::new();
         for region in regions {
             let region_start =
@@ -394,7 +398,7 @@ impl Memory {
             self.copy_region(rel_start, num_pages, &mut program_regions);
         }
 
-        println!("-- copied {} segments", program_regions.len());
+        println!("-- [exefs] copied {} segments", program_regions.len());
 
         program_regions
     }

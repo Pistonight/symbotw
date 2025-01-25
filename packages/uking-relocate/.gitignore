@@ -2,3 +2,6 @@
 *.reloc
 *.syms
 *.blfm
+*.zip
+*.sbyml
+*.byml
