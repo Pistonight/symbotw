@@ -19,15 +19,21 @@ pub struct Cli {
     /// find the other modules.
     pub sdk_elf: String,
 
+    /// Path to the root of the romfs. Not all romfs files are required. See README
+    ///
+    /// If not specified, the program searches:
+    /// - "romfs" directory in the same directory as the sdk elf
+    /// - "romfs" directory in the parent directory of the sdk elf
+    #[clap(long)]
+    pub romfs: Option<String>,
+
     /// Path to the output file.
     #[clap(short, long, default_value = "program.blfm")]
     pub output: String,
 
-    /// Simulate allocation as if DLC is installed.
-    ///
-    /// This only affects singleton allocation
-    #[clap(long)]
-    pub dlc: bool,
+    /// DLC Version. 0 means no DLC, 1 is the day 1 stuff (Ver 1), Ver 2 is Master Trials, Ver 3 is Champions Ballad.
+    #[clap(long, default_value = "0")]
+    pub dlc: u32,
 
     /// The physical start address of the program region.
     ///
