@@ -344,6 +344,7 @@ class IDAUnionImportVisitor(UnionImportVisitor):
 
     def visit_size(self, size):
         tinfo = ida_typeinf.tinfo_t()
+        _assert(tinfo is not None, f"Failed to create tinfo_t for union: {self.name}")
         _assert(tinfo.create_udt(self.udt, ida_typeinf.BTF_UNION), f"Failed to create union type: {self.name}")
         _assert(tinfo.get_size() == size, f"Union size mismatch: Actual: {tinfo.get_size()} != Expected: {size}")
         self.tinfo = tinfo
@@ -379,12 +380,14 @@ class IDAStructImportVisitor(StructImportVisitor):
 
     def visit_size(self, size):
         tinfo = ida_typeinf.tinfo_t()
+        _assert(tinfo is not None, f"Failed to create tinfo_t for struct: {self.name}")
         _assert(tinfo.create_udt(self.udt, ida_typeinf.BTF_STRUCT), f"Failed to create struct type: {self.name}")
         if tinfo.get_size() != size:
             # If size mismatch, try explicit tail padding
             verboseln(f"Struct size mismatch, trying explicit tail padding")
             _explicit_tail_padding(self.udt, size)
             tinfo = ida_typeinf.tinfo_t()
+            _assert(tinfo is not None, f"Failed to create tinfo_t for struct: {self.name}")
             _assert(tinfo.create_udt(self.udt, ida_typeinf.BTF_STRUCT), f"Failed to create struct type: {self.name}")
             _assert(tinfo.get_size() != size, f"Struct size mismatch after tail padding: Actual: {tinfo.get_size()} != Expected: {size}")
             verboseln(f"Struct size OK with explicit tail padding added")
@@ -490,6 +493,7 @@ def _create_placeholder(name: str, size: int, align: int):
     udt.push_back(member)
 
     tinfo = ida_typeinf.tinfo_t()
+    _assert(tinfo is not None, f"Failed to create tinfo_t for placeholder type: {name}")
     _assert(tinfo.create_udt(udt, ida_typeinf.BTF_STRUCT), f"Failed to create placeholder type: {name}")
     _set_tinfo(name, tinfo)
 
