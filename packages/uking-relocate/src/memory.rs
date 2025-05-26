@@ -5,7 +5,7 @@ use elf::abi::{
     PT_LOAD, R_AARCH64_ABS64, R_AARCH64_GLOB_DAT, R_AARCH64_JUMP_SLOT, R_AARCH64_RELATIVE,
 };
 
-use blueflame_program::ProgramRegion;
+use blueflame::program::ProgramRegion;
 
 use crate::{
     cli::RegionArg,

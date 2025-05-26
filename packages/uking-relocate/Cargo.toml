@@ -6,12 +6,11 @@ description = "Tool for relocating uking binaries"
 publish = false
 
 [dependencies]
-anyhow = "1.0.95"
-blueflame-program = { git = "https://github.com/Pistonite/botw-ist", rev = "b786cfc406fb6ebcdc6a89af3eb51343f44e3e9a" }
-blueflame-utils = { git = "https://github.com/Pistonite/botw-ist", rev = "b786cfc406fb6ebcdc6a89af3eb51343f44e3e9a" }
-clap = { version = "4.5.23", features = ["derive"] }
-derive_more = { version = "1.0.0", features = ["full"] }
+anyhow = "1.0.98"
+blueflame = { git = "https://github.com/Pistonite/botw-ist", rev = "f66deaedf6d3316691e51ce4bd87bb55b1eb5742", default-features = false }
+clap = { version = "4.5.38", features = ["derive"] }
+derive_more = { version = "2.0.1", features = ["full"] }
 elf = "0.7.4"
 memchr = "2.7.4"
 roead = "1.0.0"
-thiserror = "2.0.11"
+thiserror = "2.0.12"

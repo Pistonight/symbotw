@@ -2,8 +2,8 @@ use std::path::{Path, PathBuf};
 
 use anyhow::bail;
 
-use blueflame_program::ProgramData;
-use blueflame_utils::DataType;
+use blueflame::env::DataId;
+use blueflame::program::ProgramData;
 
 pub struct Romfs {
     /// Path to Actor/ActorInfo.product.sbyml (or .byml)
@@ -33,7 +33,7 @@ impl Romfs {
         let bytes = std::fs::read(&self.actor_info)?;
         let decompressed_bytes = roead::yaz0::decompress_if(&bytes);
 
-        let actor_info = ProgramData::new(DataType::ActorInfoByml, decompressed_bytes.to_vec());
+        let actor_info = ProgramData::new(DataId::ActorInfoByml, decompressed_bytes.to_vec());
         Ok(actor_info)
     }
 }

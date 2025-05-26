@@ -28,12 +28,8 @@ pub struct Cli {
     pub romfs: Option<String>,
 
     /// Path to the output file.
-    #[clap(short, long, default_value = "program.blfm")]
+    #[clap(short, long, default_value = "program.bfi")]
     pub output: String,
-
-    /// DLC Version. 0 means no DLC, 1 is the day 1 stuff (Ver 1), Ver 2 is Master Trials, Ver 3 is Champions Ballad.
-    #[clap(long, default_value = "0")]
-    pub dlc: u32,
 
     /// The physical start address of the program region.
     ///

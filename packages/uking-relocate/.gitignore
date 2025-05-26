@@ -2,6 +2,7 @@
 *.reloc
 *.syms
 *.blfm
+*.bfi
 *.zip
 *.sbyml
 *.byml

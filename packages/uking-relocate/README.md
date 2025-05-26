@@ -62,7 +62,7 @@ to derive the heap region.
 
 ## Usage Cheatsheet
 ```
-uking-relocate SDK [-o OUTPUT] --start ADDR [--dlc DLC_VERSION] [--romfs PATH] [--regions ...]
+uking-relocate SDK [-o OUTPUT] --start ADDR [--romfs PATH] [--regions ...]
 ```
 - `SDK` is the path to the ELF version of the `sdk` module. The version string
   embedded in the SDK module is used to determine the game version.
@@ -81,6 +81,6 @@ Add it to dependency:
 cargo add blueflame-program --git https://github.com/Pistonite/botw-ist
 ```
 ```rust
-let data = std::fs::read("my_pack.blfm")?;
+let data = std::fs::read("my_pack.bfi")?;
 let program = blueflame_program::unpack_blueflame(&data)?;
 ```

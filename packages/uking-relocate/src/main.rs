@@ -3,8 +3,8 @@ use std::process::ExitCode;
 use anyhow::bail;
 use clap::Parser;
 
-use blueflame_program::ProgramBuilder;
-use blueflame_utils::{DlcVer, Environment, GameVer};
+use blueflame::env::GameVer;
+use blueflame::program::{self, ProgramBuilder};
 
 mod cli;
 mod elf;
@@ -33,44 +33,34 @@ fn main_internal() -> anyhow::Result<()> {
         bail!("invalid program start (see readme)");
     }
 
-    let Some(dlc_ver) = DlcVer::from_num(cli.dlc) else {
-        bail!("invalid DLC version. Must be 0-3");
-    };
-
     // load the files
     let data = ModuleData::load(&cli.sdk_elf)?;
     let romfs_path = cli.romfs.as_ref().map(|s| s.as_ref());
     let romfs = Romfs::find_paths(&cli.sdk_elf, romfs_path)?;
-    let env = Environment {
-        game_ver: if data.info.is_1_6_0 {
-            GameVer::X160
-        } else {
-            GameVer::X150
-        },
-        dlc_ver,
+    let game_ver = if data.info.is_1_6_0 {
+        GameVer::X160
+    } else {
+        GameVer::X150
     };
 
     let memory = Memory::load(cli.start, &data)?;
 
-    let program = ProgramBuilder::new(env)
-        .program(
-            cli.start,
-            memory.get_program_size(),
-            memory.to_program_regions(&cli.regions),
-        )
+    let program = ProgramBuilder::new(game_ver)
+        .set_program_location(cli.start, memory.get_program_size())
+        .add_regions(memory.to_program_regions(&cli.regions))
         .add_data(romfs.load_actor_info_data()?)
         .build();
 
     println!("-- packing the program...");
-    let data = blueflame_program::pack_blueflame(&program)?;
+    let data = program::pack(&program)?;
     println!("packed size: {} bytes", data.len());
     println!("-- verifying the pack...");
-    let program2 = blueflame_program::unpack_blueflame(&data)?;
+    let program2 = program::unpack(&data)?;
     if program != program2 {
         bail!("the unpacked program does not match the original program");
     }
 
-    println!("-- writing the output file...");
+    println!("-- writing output file: {}", cli.output);
 
     std::fs::write(cli.output, data)?;
 
