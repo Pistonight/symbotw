@@ -39,7 +39,7 @@ pub struct Cli {
     pub start: u64,
 
     /// Regions of memory to keep in the program image, in the format
-    /// of `[module]:start-end`. If empty, everything is kept.
+    /// of `[module]:start-end` (including the brackets). If empty, everything is kept.
     ///
     /// Module can be: [rtld (alias: nnrtld), main (alias: uking, u-king), subsdk0 (alias: multimedia), sdk (alias: nnsdk)],
     /// .nss postfixes are ignored. rtld is the same as not specifying a module.
