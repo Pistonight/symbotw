@@ -3,8 +3,9 @@ use std::process::ExitCode;
 use anyhow::bail;
 use clap::Parser;
 
-use blueflame::env::GameVer;
-use blueflame::program::{self, ProgramBuilder};
+use blueflame::env::{DataId, GameVer};
+use blueflame::program;
+//use blueflame::program::{self, ProgramBuilder};
 
 mod cli;
 mod elf;
@@ -19,7 +20,7 @@ use romfs::Romfs;
 
 fn main() -> ExitCode {
     if let Err(e) = main_internal() {
-        eprintln!("error: {:?}", e);
+        eprintln!("error: {e:?}");
         ExitCode::FAILURE
     } else {
         ExitCode::SUCCESS
@@ -43,13 +44,25 @@ fn main_internal() -> anyhow::Result<()> {
         GameVer::X150
     };
 
+    // make the memory
     let memory = Memory::load(cli.start, &data)?;
+    // build the program image
+    let info = &data.info;
+    let mut builder = program::builder(game_ver, cli.start, memory.get_program_size())
+        .add_module("rtld", info.rtld.start)
+        .add_module("main", info.main.start)
+        .add_module("subsdk0", info.subsdk0.start)
+        .add_module("sdk", info.sdk.start)
+        .done_with_modules();
+    for section in &memory.regions {
+        builder = builder.add_section(section.rel_start, section.permissions);
+    }
+    let mut builder = builder.done_with_sections();
+    builder = memory.add_program_segments(&cli.regions, builder);
 
-    let program = ProgramBuilder::new(game_ver)
-        .set_program_location(cli.start, memory.get_program_size())
-        .add_regions(memory.to_program_regions(&cli.regions))
-        .add_data(romfs.load_actor_info_data()?)
-        .build();
+    let program = builder
+        .add_data(DataId::ActorInfoByml, romfs.load_actor_info_data()?)
+        .done();
 
     println!("-- packing the program...");
     let data = program::pack(&program)?;
@@ -59,7 +72,6 @@ fn main_internal() -> anyhow::Result<()> {
     if program != program2 {
         bail!("the unpacked program does not match the original program");
     }
-
     println!("-- writing output file: {}", cli.output);
 
     std::fs::write(cli.output, data)?;

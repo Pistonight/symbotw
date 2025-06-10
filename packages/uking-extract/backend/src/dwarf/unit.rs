@@ -162,7 +162,7 @@ impl<'d, 'i> UnitCtx<'d, 'i> {
         let entry_tag = entry.tag();
         if entry_tag != tag {
             return bad!(self, offset, Error::UnexpectedTag(entry_tag))
-                .attach_printable(format!("Expecting: {}", tag));
+                .attach_printable(format!("Expecting: {tag}",));
         }
         Ok(())
     }
@@ -184,7 +184,7 @@ impl<'d, 'i> UnitCtx<'d, 'i> {
                 offset,
                 Error::BadEntryAttrType(DW_AT_external, "Flag")
             )
-            .attach_printable(format!("Got: {:?}", value)),
+            .attach_printable(format!("Got: {value:?}",)),
         }
     }
 
@@ -205,7 +205,7 @@ impl<'d, 'i> UnitCtx<'d, 'i> {
                 offset,
                 Error::BadEntryAttrType(DW_AT_declaration, "Flag")
             )
-            .attach_printable(format!("Got: {:?}", value)),
+            .attach_printable(format!("Got: {value:?}",)),
         }
     }
 
@@ -272,6 +272,6 @@ impl<'d, 'i> UnitCtx<'d, 'i> {
     }
 
     pub fn format_offset(&self, offset: usize) -> String {
-        format!("At .debug_info Offset: 0x{:08x}", offset)
+        format!("At .debug_info Offset: 0x{offset:08x}",)
     }
 }

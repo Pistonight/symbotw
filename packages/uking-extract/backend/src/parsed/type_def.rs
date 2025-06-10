@@ -91,10 +91,7 @@ impl TypeYaml for StructDef {
         if !self.vtable.is_empty() {
             s.push_str("    vtable:\n");
             for (func, ty) in &self.vtable {
-                s.push_str(&format!(
-                    "      - {{ name: '{}', type: [ {} ] }}\n",
-                    func, ty
-                ));
+                s.push_str(&format!("      - {{ name: '{func}', type: [ {ty} ] }}\n",));
             }
         }
         if !self.members.is_empty() {

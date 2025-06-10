@@ -105,7 +105,7 @@ pub fn read_struct_type<'i>(
                 let name = if offset == 0 {
                     "base".to_string()
                 } else {
-                    format!("base_{:x}", offset)
+                    format!("base_{offset:x}",)
                 };
                 members.push(MemberInfo {
                     offset,
@@ -146,8 +146,8 @@ pub fn read_struct_type<'i>(
                                 unit.to_global_offset(entry.offset()),
                                 Error::ConflictingVtableEntry
                             )
-                            .attach_printable(format!("Vtable entry {}", velem))
-                            .attach_printable(format!("Vtable: {:?}", vtable))
+                            .attach_printable(format!("Vtable entry {velem}",))
+                            .attach_printable(format!("Vtable: {vtable:?}",))
                             .attach_printable(format!("Need to insert: {:?}", vfptr.name))
                             .attach_printable("Expecting dtor to be declared 0th in vtable");
                         }
@@ -160,9 +160,9 @@ pub fn read_struct_type<'i>(
                                 unit.to_global_offset(entry.offset()),
                                 Error::ConflictingVtableEntry
                             )
-                            .attach_printable(format!("Vtable entry {}", velem))
-                            .attach_printable(format!("Vtable: {:?}", vtable))
-                            .attach_printable(format!("Need to insert: {:?}", name));
+                            .attach_printable(format!("Vtable entry {velem}",))
+                            .attach_printable(format!("Vtable: {vtable:?}",))
+                            .attach_printable(format!("Need to insert: {name:?}",));
                         }
                     }
                 }
@@ -195,8 +195,8 @@ pub fn read_struct_type<'i>(
             unit.to_global_offset(entry.offset()),
             Error::MissingVtableEntry
         )
-        .attach_printable(format!("Vtable entry {}", i))
-        .attach_printable(format!("Vtable: {:?}", vtable));
+        .attach_printable(format!("Vtable entry {i}",))
+        .attach_printable(format!("Vtable: {vtable:?}",));
     }
     // transparent struct simplification
     // if the struct has 1 member, and no vtable

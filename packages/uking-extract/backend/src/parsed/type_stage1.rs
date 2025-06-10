@@ -23,37 +23,6 @@ impl TypesStage1 {
             buckets,
         }
     }
-    // pub fn new2(off2info: BTreeMap<Offset, TypeInfo>, merges: Vec<(Offset, Offset)>) -> Self {
-    //     let off2bkt = off2info.keys().map(|k| (*k, *k)).collect();
-    //     let buckets = off2info.keys().map(|k| (*k, vec![*k])).collect();
-    //
-    //     let mut merger = Self {
-    //         off2info,
-    //         off2bkt,
-    //         buckets,
-    //     };
-    //
-    //     for (a, b) in merges {
-    //         let a = a.into();
-    //         let b = b.into();
-    //         merger.merge(&a, &b);
-    //     }
-    //     merger.merge_typedefs();
-    //
-    //     merger
-    // }
-    //
-    // fn merge_typedefs(&mut self) {
-    //     let mut typedefs = Vec::new();
-    //     for (offset, ty) in &self.off2info {
-    //         if let TypeInfo::Typedef(_, ty_offset) = ty {
-    //             typedefs.push((*ty_offset, *offset));
-    //         }
-    //     }
-    //     for (a, b) in typedefs {
-    //         self.merge(&a, &b);
-    //     }
-    // }
 
     /// Merge the bucket containing b into the bucket containing a
     pub fn merge(&mut self, off_a: &Offset, off_b: &Offset) {
@@ -69,7 +38,7 @@ impl TypesStage1 {
             if bucket_a.contains(&super::DEBUG_MERGE_OFFSET)
                 || bucket_b.contains(&super::DEBUG_MERGE_OFFSET)
             {
-                println!("Merge Stage 1: {} {}", off_a, off_b);
+                println!("Merge Stage 1: {off_a} {off_b}",);
             }
         }
         // offsets in b_bucket need to change their offset_to_bucket
@@ -84,7 +53,7 @@ impl TypesStage1 {
         let mut seen = Vec::new();
         let r = self.merge_recur(off_a, off_b, "Root invocation", &mut seen);
         if !seen.is_empty() {
-            panic!("Seen stack not empty: {:?}", seen);
+            panic!("Seen stack not empty: {seen:?}",);
         }
         r
     }
@@ -99,7 +68,7 @@ impl TypesStage1 {
     ) -> Result<(), TypeError> {
         self.merge_recur_internal(off_a, off_b, seen)
             .change_context(TypeError::MergeFail)
-            .attach_printable_lazy(|| format!("Merging {} and {}", off_a, off_b))
+            .attach_printable_lazy(|| format!("Merging {off_a} and {off_b}",))
             .attach_printable_lazy(|| tag.to_string())
     }
 
@@ -267,7 +236,7 @@ impl TypesStage1 {
             ) => {
                 if a_len != b_len {
                     return Err(report!(TypeError::ArrayLengthMismatch))
-                        .attach_printable(format!("{} != {}", a_len, b_len));
+                        .attach_printable(format!("{a_len} != {b_len}",));
                 }
                 seen.push((*off_a, *off_b));
                 let result = self.merge_recur(a, b, "Merging array inner type", seen);

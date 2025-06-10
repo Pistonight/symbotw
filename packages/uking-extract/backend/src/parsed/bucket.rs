@@ -72,7 +72,7 @@ impl Bucket {
                             match s {
                                 None => {
                                     let r = Err(report!(TypeError::NotSized))
-                                        .attach_printable(format!("For offset {}", off))
+                                        .attach_printable(format!("For offset {off}",))
                                         .attach_printable("Array of unsized type");
                                     return r;
                                 }
@@ -89,10 +89,9 @@ impl Bucket {
             if let BucketSize::Size(old_size) = size {
                 if old_size != new_size {
                     let r = Err(report!(TypeError::InconsistentSize))
-                        .attach_printable(format!("For offset {}", off))
+                        .attach_printable(format!("For offset {off}"))
                         .attach_printable(format!(
-                            "Old size: {:?} != New size: {:?}",
-                            old_size, new_size
+                            "Old size: {old_size:?} != New size: {new_size:?}",
                         ))
                         .attach_printable(format!(
                             "Names: {}",
@@ -116,10 +115,10 @@ impl Bucket {
 
     pub fn check(&self, id: &Offset, off2info: &BTreeMap<Offset, TypeInfo>) {
         if self.candidates.is_empty() {
-            panic!("Empty bucket {}: {:?}", id, self.names);
+            panic!("Empty bucket {id}: {:?}", self.names);
         }
         if self.type_ == BucketType::Unknown {
-            panic!("Unknown type in bucket {}", id);
+            panic!("Unknown type in bucket {id}",);
         }
         for c in &self.candidates {
             let info = off2info.get(c).unwrap();
@@ -127,7 +126,7 @@ impl Bucket {
                 return;
             }
         }
-        panic!("All candidates are typedefs in bucket {}", id);
+        panic!("All candidates are typedefs in bucket {id}",);
     }
 
     pub fn reduce(&mut self, off2info: &BTreeMap<Offset, TypeInfo>, namespaces: &NamespaceMap) {

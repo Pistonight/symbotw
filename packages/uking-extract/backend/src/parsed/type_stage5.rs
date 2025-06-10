@@ -53,7 +53,7 @@ impl TypesStage5 {
                 if let BucketSize::Size(size) = size {
                     #[cfg(feature = "debug-resolve-size")]
                     {
-                        println!("  {}: {:?}", bkt, size);
+                        println!("  {bkt}: {size:?}");
                     }
                     bkt2size.insert(*bkt, size);
                 }

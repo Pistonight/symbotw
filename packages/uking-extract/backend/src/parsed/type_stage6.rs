@@ -48,14 +48,14 @@ impl TypesStage6 {
             let name = self.bkt2name.get(bkt).unwrap();
             progress.print(i, name);
             self.create_def_for_bucket(bkt, &mut name_to_def, &mut referenced_names)
-                .attach_printable_lazy(|| format!("While creating definition for type {}", name))?;
+                .attach_printable_lazy(|| format!("While creating definition for type {name}",))?;
         }
         progress.done();
         // check if all referenced names have definitions
         for (x, referers) in &referenced_names.0 {
             if !name_to_def.contains_key(x) {
                 return Err(report!(TypeError::BrokenTypeRef(x.clone())))
-                    .attach_printable(format!("Referenced by {:?}", referers));
+                    .attach_printable(format!("Referenced by {referers:?}",));
             }
         }
         self.referenced_names = referenced_names;
@@ -72,7 +72,7 @@ impl TypesStage6 {
         for (x, referers) in &self.referenced_names.0 {
             if !types.contains_key(x) {
                 return Err(report!(TypeError::BrokenTypeRef(x.clone())))
-                    .attach_printable(format!("Referenced by {:?}", referers));
+                    .attach_printable(format!("Referenced by {referers:?}",));
             }
         }
         Ok(())
@@ -104,7 +104,7 @@ impl TypesStage6 {
         };
         #[cfg(feature = "debug-create-def")]
         {
-            println!("Creating def for {}", name);
+            println!("Creating def for {name}",);
         }
         let key = name.clone();
         let def = match info {
@@ -131,7 +131,7 @@ impl TypesStage6 {
                 let mut size = 0;
                 let mut members: Vec<(String, String)> = Vec::with_capacity(x.members.len());
                 for (i, (name, offset)) in x.members.into_iter().enumerate() {
-                    let mut name = name.unwrap_or_else(|| format!("_{}", i));
+                    let mut name = name.unwrap_or_else(|| format!("_{i}"));
                     while members.iter().any(|x| x.0 == name) {
                         name.push('_');
                     }
@@ -139,7 +139,7 @@ impl TypesStage6 {
                     let member_size = self.bkt2size.get(bkt).unwrap()
                         .ok_or(report!(TypeError::InvalidLayout))
                         .attach_printable_lazy(|| {
-                            format!("While resolving union member `{name}`, cannot find size for type {}", offset)
+                            format!("While resolving union member `{name}`, cannot find size for type {offset}", )
                         })?;
                     size = size.max(member_size);
                     let ty_name = self.bkt2name.get(bkt).unwrap();
@@ -179,8 +179,8 @@ impl TypesStage6 {
         if let Some(old) = name2def.get(&key) {
             if old != &def {
                 return Err(report!(TypeError::ConflictingType))
-                    .attach_printable(format!("Old: {:?}", old))
-                    .attach_printable(format!("New: {:?}", def));
+                    .attach_printable(format!("Old: {old:?}",))
+                    .attach_printable(format!("New: {def:?}",));
             }
         } else {
             name2def.insert(key.clone(), def);
@@ -203,13 +203,13 @@ impl TypesStage6 {
                 // need to create definition to PTMFs as structs
                 if let TypeComp::Ptmf(this, _) = c.as_ref() {
                     if let TypeName::Name(n) = this {
-                        format!("{}_ptmf", n)
+                        format!("{n}_ptmf",)
                     } else {
                         return Err(report!(TypeError::UnexpectedUnnamedPtmfThis))
-                            .attach_printable(format!("PTMF has base type: {}", this))
-                            .attach_printable(format!("PTMF: {:?}", c))
-                            .attach_printable(format!("Bucket: {}", bkt))
-                            .attach_printable(format!("Name: {}", name));
+                            .attach_printable(format!("PTMF has base type: {this}",))
+                            .attach_printable(format!("PTMF: {c:?}",))
+                            .attach_printable(format!("Bucket: {bkt}",))
+                            .attach_printable(format!("Name: {name}",));
                     }
                 } else {
                     // don't create definitions for pointers, arrays, subroutines
@@ -373,7 +373,7 @@ impl TypesStage6 {
                 if m_size == 0 {
                     #[cfg(feature = "debug-layout")]
                     {
-                        println!("struct {}, base member `{}`, empty base", name, m_name);
+                        println!("struct {name}, base member `{m_name}`, empty base");
                     }
                     // empty base optimization - base is removed
                     continue;
@@ -386,7 +386,7 @@ impl TypesStage6 {
                 if base_size > m_size {
                     #[cfg(feature = "debug-layout")]
                     {
-                        println!("struct {}, base member `{}`, tail-padding", name, m_name);
+                        println!("struct {name}, base member `{m_name}`, tail-padding");
                     }
                     // tail padding optimization
                     // expand the base members into the struct
@@ -421,8 +421,7 @@ impl TypesStage6 {
                 }
             } else if m_size == 0 {
                 let r = report!(TypeError::InvalidLayout).attach_printable(format!(
-                    "Non-base Member `{}` has zero size in the struct layout",
-                    m_name
+                    "Non-base Member `{m_name}` has zero size in the struct layout",
                 ));
                 return Err(r);
             }

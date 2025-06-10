@@ -69,7 +69,7 @@ pub fn read_base_type<'i>(
                     [DW_AT_encoding.to_string(), DW_AT_byte_size.to_string(),].join(", ")
                 )
             )
-            .attach_printable(format!("Got: encoding={}, bytes={}", encoding, byte_size))
+            .attach_printable(format!("Got: encoding={encoding}, bytes={byte_size}",))
         }
     }
 }

@@ -196,9 +196,9 @@ impl DynamicSymbolTables {
         if let Some(symbol) = strong_sym {
             return Ok(symbol.address);
         }
-        println!("{:?}", results);
+        println!("{results:?}");
         // found more than one symbol, does it even happen?
-        bail!("ambiguous symbol: {}", name);
+        bail!("ambiguous symbol: {name}");
     }
 }
 

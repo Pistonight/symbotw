@@ -13,7 +13,7 @@ use tyyaml::{Address, DataSheet};
 
 pub fn run(options: &Options) -> anyhow::Result<()> {
     let input_path_str = options.input.display().to_string();
-    println!("Reading data from {}", input_path_str);
+    println!("Reading data from {input_path_str}",);
     let file = File::open(&options.input)?;
     let mut reader = BufReader::new(file);
     let data_sheet: DataSheet = serde_yaml_ng::from_reader(&mut reader)?;
@@ -53,7 +53,7 @@ pub fn run(options: &Options) -> anyhow::Result<()> {
     let frontend_class = match options.frontend {
         Frontend::IDA => "IDAFrontend",
     };
-    main_script.push_str(&format!("    return {}()\n", frontend_class));
+    main_script.push_str(&format!("    return {frontend_class}()\n",));
 
     // the import types
     main_script.push_str("def process_imports(ti, ai):\n");
@@ -67,7 +67,7 @@ pub fn run(options: &Options) -> anyhow::Result<()> {
         for (i, def) in data_sheet.enums.iter().enumerate() {
             progress.print(i, &def.name);
             for line in def.emit_python() {
-                main_script.push_str(&format!("    {}\n", line));
+                main_script.push_str(&format!("    {line}\n",));
             }
         }
         progress.done();
@@ -76,7 +76,7 @@ pub fn run(options: &Options) -> anyhow::Result<()> {
         for (i, def) in data_sheet.unions.iter().enumerate() {
             progress.print(i, &def.name);
             for line in def.emit_python() {
-                main_script.push_str(&format!("    {}\n", line));
+                main_script.push_str(&format!("    {line}\n",));
             }
         }
         progress.done();
@@ -85,7 +85,7 @@ pub fn run(options: &Options) -> anyhow::Result<()> {
         for (i, def) in data_sheet.structs.iter().enumerate() {
             progress.print(i, &def.name);
             for line in def.emit_python() {
-                main_script.push_str(&format!("    {}\n", line));
+                main_script.push_str(&format!("    {line}\n",));
             }
         }
         progress.done();
@@ -100,13 +100,13 @@ pub fn run(options: &Options) -> anyhow::Result<()> {
                 Address::Function(func) => {
                     progress.print(i, &func.name);
                     for line in func.emit_python(offset) {
-                        main_script.push_str(&format!("    {}\n", line));
+                        main_script.push_str(&format!("    {line}\n",));
                     }
                 }
                 Address::Data(data) => {
                     progress.print(i, &data.name);
                     let s = data.emit_python(offset);
-                    main_script.push_str(&format!("    {}\n", s));
+                    main_script.push_str(&format!("    {s}\n",));
                 }
             }
         }
@@ -135,7 +135,7 @@ pub fn run(options: &Options) -> anyhow::Result<()> {
 
     let output_path_str = options.output.display().to_string();
     std::fs::write(&options.output, output)?;
-    println!("Script saved to {}", output_path_str);
+    println!("Script saved to {output_path_str}",);
     println!(
         "Please make sure to run the script AFTER auto-analysis is complete in a fresh database."
     );

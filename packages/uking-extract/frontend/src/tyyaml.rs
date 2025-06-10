@@ -28,9 +28,9 @@ impl Enum {
         out.push(format!("    EnumDef(0x{:x}, [", self.size));
         for (name, value) in self.enumerators.iter() {
             if *value < 0 {
-                out.push(format!("        (\"{}\", {}),", name, value));
+                out.push(format!("        (\"{name}\", {value}),",));
             } else {
-                out.push(format!("        (\"{}\", 0x{:x}),", name, value));
+                out.push(format!("        (\"{name}\", 0x{value:x}),",));
             }
         }
         if let Some(x) = out.last_mut() {
@@ -85,7 +85,7 @@ impl Struct {
             for member in &self.vtable {
                 let name = &member.name;
                 let tyyaml = emit_tyyaml_python(&member.tyyaml);
-                out.push(format!("        (\"{}\", {}),", name, tyyaml));
+                out.push(format!("        (\"{name}\", {tyyaml}),",));
             }
             if let Some(x) = out.last_mut() {
                 if x.ends_with(",") {
@@ -171,7 +171,7 @@ fn emit_tyyaml_python(tyyaml: &Value) -> String {
     // convert string to json
     let json_str_str = serde_json::to_string(&json!(json_str)).unwrap();
 
-    format!("json.loads({})", json_str_str)
+    format!("json.loads({json_str_str})",)
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
@@ -194,7 +194,7 @@ pub struct Function {
 impl Function {
     pub fn emit_python(&self, offset: &str) -> Vec<String> {
         let mut out = Vec::new();
-        out.push(format!("ai.add_func({},", offset));
+        out.push(format!("ai.add_func({offset},",));
         out.push(format!("    _make_function(\"{}\",", self.name));
         if let Some(tyyaml) = &self.tyyaml {
             out.last_mut()
@@ -235,7 +235,7 @@ impl Arg {
                 emit_tyyaml_python(tyyaml)
             )
         } else {
-            format!("_make_name_type(\"{}\", [])", name)
+            format!("_make_name_type(\"{name}\", [])",)
         }
     }
 }

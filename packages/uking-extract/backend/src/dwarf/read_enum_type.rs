@@ -44,10 +44,9 @@ pub fn read_enum_type<'i>(
                     }
                     _ => {
                         return bad!(unit, unit.to_global_offset(off), Error::UnexpectedEnumType)
-                            .attach_printable(format!(
-                                "base type is {}, which is not primitive",
-                                ty
-                            ))
+                            .attach_printable(
+                                format!("base type is {ty}, which is not primitive",),
+                            )
                     }
                 }
             }

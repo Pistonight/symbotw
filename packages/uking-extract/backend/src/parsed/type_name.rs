@@ -35,8 +35,8 @@ impl TypeName {
         hash: u64,
     ) -> Result<Self, TypeError> {
         let name = ns
-            .get(offset, &format!("anonymous_{}x{:016x}", tag, hash))
-            .attach_printable_lazy(|| format!("While creating anonymous {}", tag))?;
+            .get(offset, &format!("anonymous_{tag}x{hash:016x}",))
+            .attach_printable_lazy(|| format!("While creating anonymous {tag}",))?;
         Ok(Self::Name(name))
     }
 
@@ -67,9 +67,9 @@ impl TypeName {
                 TypeComp::Ptmf(this_ty, sub) => {
                     // ptmf also needs the _ptmf struct
                     if let Self::Name(name) = this_ty {
-                        names.push(format!("{}_ptmf", name));
+                        names.push(format!("{name}_ptmf",));
                     } else {
-                        panic!("ptmf of non-name type: {:?}", this_ty);
+                        panic!("ptmf of non-name type: {this_ty:?}",);
                     }
                     this_ty.add_referenced_names(names);
                     for t in sub.iter() {
@@ -85,7 +85,7 @@ impl TypeYaml for TypeName {
     fn yaml_string(&self) -> String {
         match self {
             TypeName::Prim(p) => p.yaml_string(),
-            TypeName::Name(n) => format!("'\"{}\"'", n),
+            TypeName::Name(n) => format!("'\"{n}\"'",),
             TypeName::Comp(c) => c.yaml_string(),
         }
     }
@@ -94,9 +94,9 @@ impl TypeYaml for TypeName {
 impl std::fmt::Display for TypeName {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            TypeName::Prim(prim) => write!(f, "{}", prim),
-            TypeName::Name(name) => write!(f, "\"{}\"", name),
-            TypeName::Comp(c) => write!(f, "{}", c),
+            TypeName::Prim(prim) => write!(f, "{prim}",),
+            TypeName::Name(name) => write!(f, "\"{name}\"",),
+            TypeName::Comp(c) => write!(f, "{c}"),
         }
     }
 }

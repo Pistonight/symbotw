@@ -148,7 +148,7 @@ impl<'i> UnitCtx<'_, 'i> {
             AttributeValue::Udata(x) => Ok(x as i128),
             AttributeValue::Sdata(x) => Ok(x as i128),
             _ => bad!(self, global_offset, Error::BadEntryAttrType(at, "int data"))
-                .attach_printable(format!("Got: {:?}", attr)),
+                .attach_printable(format!("Got: {attr:?}",)),
         }
     }
     /// Get an attribute value as unsigned integer
@@ -185,7 +185,7 @@ impl<'i> UnitCtx<'_, 'i> {
                 global_offset,
                 Error::BadEntryAttrType(at, "unsigned data")
             )
-            .attach_printable(format!("Got: {:?}", attr)),
+            .attach_printable(format!("Got: {attr:?}",)),
         }
     }
 }

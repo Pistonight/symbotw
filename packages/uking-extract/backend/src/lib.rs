@@ -65,13 +65,10 @@ pub fn extract(options: &Options) -> Result<(), Error> {
     // Add remaining undecompiled symbols
     let progress = ProgressPrinter::new(uking_symbols.len(), "Add undecompiled symbols");
     for (i, (symbol, address)) in uking_symbols.into_iter().enumerate() {
-        progress.print(i, format!("0x{:016x} {}", address, symbol));
+        progress.print(i, format!("0x{address:016x} {symbol}"));
         if dwarf.address.contains_key(&symbol) {
             // symbols already processed should already be removed
-            panic!(
-                "Symbol `{}` is already processed. This shouldn't be possible",
-                symbol
-            );
+            panic!("Symbol `{symbol}` is already processed. This shouldn't be possible",);
         }
         if data_symbols.contains(&symbol) {
             // data symbol
@@ -151,18 +148,18 @@ pub fn extract(options: &Options) -> Result<(), Error> {
         type_yaml.push_str(&address_def.yaml_string());
     }
     println!("Extracted:");
-    println!("  structs: {}", struct_count);
-    println!("  unions: {}", union_count);
-    println!("  enums: {}", enum_count);
-    println!("  functions: {}", func_count);
-    println!("  data: {}", data_count);
+    println!("  structs: {struct_count}",);
+    println!("  unions: {union_count}",);
+    println!("  enums: {enum_count}",);
+    println!("  functions: {func_count}",);
+    println!("  data: {data_count}",);
 
     // Write Output
     uking_extract_common::ensure_parent_exists(&options.output).change_context(Error::WriteFile)?;
     let output_path = &options.output;
     let output_path_str = output_path.display().to_string();
     std::fs::write(output_path, type_yaml).change_context(Error::WriteFile)?;
-    println!("Output written to {}", output_path_str);
+    println!("Output written to {output_path_str}");
 
     Ok(())
 }

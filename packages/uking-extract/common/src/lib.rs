@@ -11,7 +11,7 @@ pub use find_botw::*;
 pub fn run<T, E: std::fmt::Debug, F: FnOnce() -> Result<T, E>>(f: F) -> ExitCode {
     let start_time = Instant::now();
     if let Err(e) = f() {
-        eprintln!("\nError: {:?}", e);
+        eprintln!("\nError: {e:?}");
         return ExitCode::FAILURE;
     }
     let elapsed = start_time.elapsed();

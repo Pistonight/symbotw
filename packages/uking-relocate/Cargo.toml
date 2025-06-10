@@ -7,7 +7,7 @@ publish = false
 
 [dependencies]
 anyhow = "1.0.98"
-blueflame = { git = "https://github.com/Pistonite/botw-ist", rev = "f66deaedf6d3316691e51ce4bd87bb55b1eb5742", default-features = false }
+blueflame = { git = "https://github.com/Pistonite/botw-ist", rev = "4c3445f85a941358e51e88b7a55cf740374100f3", default-features = false }
 clap = { version = "4.5.38", features = ["derive"] }
 derive_more = { version = "2.0.1", features = ["full"] }
 elf = "0.7.4"

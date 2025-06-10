@@ -83,7 +83,7 @@ impl std::fmt::Display for AddressInfo {
 impl TypeYaml for AddressDef {
     fn yaml_string(&self) -> String {
         let addr = self.uking_address & 0xFFFFFFFF;
-        let mut s = format!("  '0x{:08x}':", addr);
+        let mut s = format!("  '0x{addr:08x}':",);
         let tag = if self.is_func { "func" } else { "data" };
         if self.ty_yaml.is_none() && self.args.is_empty() {
             s.push_str(&format!(" {{ {tag}: '{}' }}\n", self.name));
@@ -92,17 +92,17 @@ impl TypeYaml for AddressDef {
         s.push('\n');
         s.push_str(&format!("    {tag}: '{}'\n", self.name));
         if let Some(t) = &self.ty_yaml {
-            s.push_str(&format!("    type: [ {} ] \n", t));
+            s.push_str(&format!("    type: [ {t} ] \n",));
         }
         if self.is_func && !self.args.is_empty() {
             s.push_str("    args:\n");
             for (name, ty) in &self.args {
                 s.push_str("      - { ");
                 if let Some(name) = name {
-                    s.push_str(&format!("name: '{}', ", name));
+                    s.push_str(&format!("name: '{name}', ",));
                 }
                 if let Some(ty) = ty {
-                    s.push_str(&format!("type: [ {} ]", ty));
+                    s.push_str(&format!("type: [ {ty} ]",));
                 }
                 s.push_str(" }\n");
             }
@@ -122,8 +122,8 @@ impl std::fmt::Display for AddrType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             AddrType::Undecompiled => write!(f, "undecompiled"),
-            AddrType::Func(info) => write!(f, "func{}", info),
-            AddrType::Data(info) => write!(f, "data{}", info),
+            AddrType::Func(info) => write!(f, "func{info}"),
+            AddrType::Data(info) => write!(f, "data{info}"),
         }
     }
 }
@@ -139,10 +139,10 @@ impl std::fmt::Display for FuncInfo {
         let mut iter = self.args.iter();
         if let Some((name, ty)) = iter.next() {
             if let Some(name) = name {
-                write!(f, "{}: ", name)?;
+                write!(f, "{name}: ")?;
             }
             if let Some(ty) = ty {
-                write!(f, "{}", ty)?;
+                write!(f, "{ty}")?;
             } else {
                 write!(f, "<unknown>")?;
             }
@@ -150,10 +150,10 @@ impl std::fmt::Display for FuncInfo {
         for (name, ty) in iter {
             write!(f, ", ")?;
             if let Some(name) = name {
-                write!(f, "{}: ", name)?;
+                write!(f, "{name}: ")?;
             }
             if let Some(ty) = ty {
-                write!(f, "{}", ty)?;
+                write!(f, "{ty}")?;
             } else {
                 write!(f, "<unknown>")?;
             }
@@ -168,7 +168,7 @@ pub struct DataInfo {
 impl std::fmt::Display for DataInfo {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match &self.ty_offset {
-            Some(ty) => write!(f, "{}", ty),
+            Some(ty) => write!(f, "{ty}"),
             None => write!(f, "<unknown>"),
         }
     }
@@ -243,7 +243,7 @@ impl FuncInfo {
                 (Some(a), Some(b)) => {
                     if a != b {
                         return Err(report!(AddressInfoMismatch::ParamName(i)))
-                            .attach_printable(format!("self: {} != other: {}", a, b));
+                            .attach_printable(format!("self: {a} != other: {b}",));
                     }
                 }
                 (None, Some(b)) => {

@@ -57,7 +57,7 @@ impl ModuleData {
         println!("subsdk0 : {}", subsdk0_path.display());
         let subsdk0_data = std::fs::read(&subsdk0_path)?;
 
-        println!("sdk     : {}", path);
+        println!("sdk     : {path}");
 
         let data = Self {
             rtld: rtld_data,

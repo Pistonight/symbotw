@@ -28,10 +28,10 @@ pub fn read_uking_functions(
     out: &mut BTreeMap<String, u64>,
 ) -> Result<BTreeSet<String>, UkingParseError> {
     let path = file.as_ref().display().to_string();
-    println!("Reading functions from {}", path);
+    println!("Reading functions from {path}",);
     let file = File::open(file)
         .change_context(UkingParseError::OpenFile)
-        .attach_printable_lazy(|| format!("Path: {}", path))?;
+        .attach_printable_lazy(|| format!("Path: {path}",))?;
     let reader = BufReader::new(file);
     let mut decompiled = BTreeSet::new();
     for line in reader.lines() {
@@ -87,10 +87,10 @@ pub fn read_uking_data(
     out: &mut BTreeMap<String, u64>,
 ) -> Result<BTreeSet<String>, UkingParseError> {
     let path = file.as_ref().display().to_string();
-    println!("Reading data symbols from {}", path);
+    println!("Reading data symbols from {path}",);
     let file = File::open(file)
         .change_context(UkingParseError::OpenFile)
-        .attach_printable_lazy(|| format!("Path: {}", path))?;
+        .attach_printable_lazy(|| format!("Path: {path}"))?;
     let reader = BufReader::new(file);
     let mut names = BTreeSet::new();
     for line in reader.lines() {

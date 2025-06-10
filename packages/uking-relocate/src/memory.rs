@@ -5,7 +5,7 @@ use elf::abi::{
     PT_LOAD, R_AARCH64_ABS64, R_AARCH64_GLOB_DAT, R_AARCH64_JUMP_SLOT, R_AARCH64_RELATIVE,
 };
 
-use blueflame::program::ProgramRegion;
+use blueflame::program;
 
 use crate::{
     cli::RegionArg,
@@ -17,7 +17,7 @@ use crate::{
 pub struct Memory {
     info: Modules,
     start: u64,
-    regions: Vec<Region>,
+    pub regions: Vec<Region>,
     loaded_size: u32,
 }
 
@@ -59,25 +59,25 @@ impl Memory {
         )?;
         println!();
         println!("MODULE   DYNAMIC SYMBOLS");
-        println!("rtld     {}", count);
+        println!("rtld     {count}");
         let count = main_elf.load_dynamic_symbols(
             ModuleType::Main,
             start + module_data.info.main.start as u64,
             &mut dynamic_symbols.main,
         )?;
-        println!("main     {}", count);
+        println!("main     {count}");
         let count = subsdk0_elf.load_dynamic_symbols(
             ModuleType::Subsdk0,
             start + module_data.info.subsdk0.start as u64,
             &mut dynamic_symbols.subsdk0,
         )?;
-        println!("subsdk0  {}", count);
+        println!("subsdk0  {count}");
         let count = sdk_elf.load_dynamic_symbols(
             ModuleType::Sdk,
             start + module_data.info.sdk.start as u64,
             &mut dynamic_symbols.sdk,
         )?;
-        println!("sdk      {}", count);
+        println!("sdk      {count}");
 
         let mut count = 0;
         count += mem.relocate(
@@ -104,10 +104,7 @@ impl Memory {
             &module_data.info.sdk,
             &dynamic_symbols,
         )?;
-        println!(
-            "-- [exefs] applied {} relocations across all modules",
-            count
-        );
+        println!("-- [exefs] applied {count} relocations across all modules",);
 
         Ok(mem)
     }
@@ -159,7 +156,7 @@ impl Memory {
                 if permission == 5 {
                     // RX
                     if segment_start != info.text_end {
-                        bail!("unexpected text end mismatch for {}", module);
+                        bail!("unexpected text end mismatch for {module}");
                     }
                 }
             }
@@ -184,7 +181,7 @@ impl Memory {
         info: &ModuleInfo,
         dynamic: &DynamicSymbolTables,
     ) -> anyhow::Result<u32> {
-        println!("-- [exefs] applying relocation to {}", module);
+        println!("-- [exefs] applying relocation to {module}");
 
         let mut module_regions = self
             .regions
@@ -322,14 +319,12 @@ impl Memory {
 
         if !unresolved_global_data.is_empty() {
             println!(
-                "WARNING - the following global variables are unresolved: {:?}",
-                unresolved_global_data
+                "WARNING - the following global variables are unresolved: {unresolved_global_data:?}",
             );
         }
         if !unresolved_global_plt.is_empty() {
             println!(
-                "WARNING - the following GOT PLT entries are unresolved: {:?}",
-                unresolved_global_data
+                "WARNING - the following GOT PLT entries are unresolved: {unresolved_global_data:?}",
             );
         }
         Ok(count)
@@ -359,7 +354,11 @@ impl Memory {
         Ok(())
     }
 
-    pub fn to_program_regions(&self, regions: &[RegionArg]) -> Vec<ProgramRegion> {
+    pub fn add_program_segments(
+        &self,
+        regions: &[RegionArg],
+        mut builder: program::BuilderPhase3,
+    ) -> program::BuilderPhase3 {
         println!("-- [exefs] copying program memory...");
         let mut page_starts = BTreeSet::new();
         for region in regions {
@@ -393,24 +392,33 @@ impl Memory {
             }
         }
 
-        let mut program_regions = Vec::new();
+        let mut count = 0;
         for (rel_start, num_pages) in page_regions {
-            self.copy_region(rel_start, num_pages, &mut program_regions);
+            builder = self.add_segments_in(rel_start, num_pages, &mut count, builder);
         }
+        println!("-- [exefs] copied {count} segments");
 
-        println!("-- [exefs] copied {} segments", program_regions.len());
-
-        program_regions
+        builder
     }
 
     /// Copy the region of memory into a vector of ProgramRegion
     ///
     /// Note that one input region may result into multiple output regions,
     /// since there are gaps between the regions in the memory.
-    pub fn copy_region(&self, rel_start: u32, num_pages: u32, out: &mut Vec<ProgramRegion>) {
+    pub fn add_segments_in(
+        &self,
+        rel_start: u32,
+        num_pages: u32,
+        count: &mut u32,
+        mut builder: program::BuilderPhase3,
+    ) -> program::BuilderPhase3 {
         for region in &self.regions {
-            region.copy_overlapped(rel_start, num_pages, out);
+            if let Some((rel_start, data)) = region.get_overlapped(rel_start, num_pages) {
+                builder = builder.add_segment(rel_start, data);
+                *count += 1;
+            }
         }
+        builder
     }
 
     pub fn get_program_size(&self) -> u32 {
@@ -474,18 +482,18 @@ impl Region {
             .copy_from_slice(&value.to_le_bytes());
     }
 
-    /// Copy memory in this region that overlaps with the given range to out
-    pub fn copy_overlapped(&self, rel_start: u32, num_pages: u32, out: &mut Vec<ProgramRegion>) {
-        let program_rel_start = rel_start;
+    /// Get memory in this region that overlaps with the given range
+    /// Returns None if there is no overlap
+    pub fn get_overlapped(&self, rel_start: u32, num_pages: u32) -> Option<(u32, Vec<u8>)> {
         let rel_end = rel_start + num_pages * 0x1000;
         if rel_end <= self.rel_start {
             // input range is before this region
-            return;
+            return None;
         }
         let self_rel_end = self.rel_start + self.get_num_pages() * 0x1000;
         if rel_start >= self_rel_end {
             // input range is after this region
-            return;
+            return None;
         }
         let rel_start = rel_start.max(self.rel_start);
         let rel_end = rel_end.min(self_rel_end);
@@ -503,11 +511,7 @@ impl Region {
             out_mem.extend_from_slice(&self.pages[i as usize].data);
         }
 
-        out.push(ProgramRegion::new(
-            program_rel_start,
-            self.permissions,
-            out_mem,
-        ));
+        Some((rel_start, out_mem))
     }
 }
 

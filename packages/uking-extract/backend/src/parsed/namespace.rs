@@ -51,7 +51,7 @@ impl NamespaceMap<'_> {
             .map
             .get(&offset)
             .ok_or(TypeError::UnlinkedNamespace(offset))
-            .attach_printable_lazy(|| format!("While getting for name: {}", name))?;
+            .attach_printable_lazy(|| format!("While getting for name: {name}",))?;
         Ok(ns.get_with(name))
     }
 }

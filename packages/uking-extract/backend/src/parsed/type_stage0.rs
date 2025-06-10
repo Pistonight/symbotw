@@ -34,7 +34,7 @@ impl TypesStage0 {
             #[cfg(feature = "debug-merge")]
             {
                 if a == super::DEBUG_MERGE_OFFSET || b == super::DEBUG_MERGE_OFFSET {
-                    println!("Merge Stage 0: {} {}", a, b);
+                    println!("Merge Stage 0: {a} {b}",);
                 }
             }
             stage1.merge(&a, &b);
@@ -44,7 +44,7 @@ impl TypesStage0 {
             #[cfg(feature = "debug-merge")]
             {
                 if a == super::DEBUG_MERGE_OFFSET || b == super::DEBUG_MERGE_OFFSET {
-                    println!("Merge Stage 0: {} {}", a, b);
+                    println!("Merge Stage 0: {a} {b}",);
                 }
             }
             stage1.merge(&a, &b);

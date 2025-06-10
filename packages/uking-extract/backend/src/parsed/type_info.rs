@@ -60,12 +60,12 @@ impl TypeInfo {
 impl std::fmt::Display for TypeInfo {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Prim(p) => write!(f, "{}", p),
+            Self::Prim(p) => write!(f, "{p}",),
             Self::Typedef(name, ty) => write!(f, "typedef {ty} {name}"),
             Self::Struct(s) => write!(f, "struct {}", s.name.as_deref().unwrap_or("<unnamed>")),
             Self::Enum(e) => write!(f, "enum {}", e.name.as_deref().unwrap_or("<unnamed>")),
             Self::Union(u) => write!(f, "union {}", u.name.as_deref().unwrap_or("<unnamed>")),
-            Self::Comp(c) => write!(f, "{}", c),
+            Self::Comp(c) => write!(f, "{c}",),
         }
     }
 }

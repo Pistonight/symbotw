@@ -82,7 +82,7 @@ pub fn read_type_at_offset<'i>(
                 _ => {
                     let offset = unit.to_global_offset(offset);
                     return bad!(unit, offset, Error::UnspecifiedType)
-                        .attach_printable(format!("the DW_AT_name is: {}", name));
+                        .attach_printable(format!("the DW_AT_name is: {name}",));
                 }
             }
         }

@@ -42,7 +42,7 @@ fn main() -> ExitCode {
                 uking_extract_frontend::Options::try_from(cli).change_context(Error::Frontend)?;
             if let Err(e) = uking_extract_frontend::run(&options) {
                 // FIXME: consolidate anyhow and error-stack error handling
-                eprintln!("{:#?}", e);
+                eprintln!("{e:#?}");
                 return Err(report!(Error::Frontend));
             }
             Ok(())

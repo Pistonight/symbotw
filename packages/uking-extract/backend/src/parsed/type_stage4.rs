@@ -51,9 +51,9 @@ impl TypesStage4 {
         {
             println!("Initial names:");
             for (bkt, names) in &base_names {
-                println!("{}:", bkt);
+                println!("{bkt}:",);
                 for name in names {
-                    println!("  {}", name);
+                    println!("  {name}",);
                 }
             }
         }
@@ -65,7 +65,7 @@ impl TypesStage4 {
                     Some(name) => name.clone(),
                     None => {
                         return Err(report!(TypeError::NoBaseName))
-                            .attach_printable_lazy(|| format!("For bucket {}", bkt));
+                            .attach_printable_lazy(|| format!("For bucket {bkt}",));
                     }
                 };
                 if !seen_names.insert(best_name.clone()) {
@@ -80,7 +80,7 @@ impl TypesStage4 {
                 println!(">>>>>>>>>>>>>>>");
                 println!("Removing Duplicate names:");
                 for name in &duplicate_names {
-                    println!("  {}", name);
+                    println!("  {name}",);
                 }
             }
             for (bkt, names) in &mut base_names {
@@ -88,7 +88,7 @@ impl TypesStage4 {
                     Some(name) => name,
                     None => {
                         return Err(report!(TypeError::NoBaseName))
-                            .attach_printable_lazy(|| format!("For bucket {}", bkt));
+                            .attach_printable_lazy(|| format!("For bucket {bkt}",));
                     }
                 };
                 if duplicate_names.contains(best_name) {
@@ -107,7 +107,7 @@ impl TypesStage4 {
         {
             println!("Resolved base names:");
             for (bkt, name) in &bkt2name {
-                println!("{}: {}", bkt, name);
+                println!("{bkt}: {name}",);
             }
         }
         loop {
@@ -138,7 +138,7 @@ impl TypesStage4 {
                 println!("Unresolved names:");
                 for (bkt, bucket) in &self.buckets {
                     if !bkt2name.contains_key(bkt) {
-                        println!("{}: {:?}", bkt, bucket.names);
+                        println!("{bkt}: {:?}", bucket.names);
                     }
                 }
             }
@@ -152,7 +152,7 @@ impl TypesStage4 {
                 println!("Duplicated names:");
                 for (bkt, name) in &bkt2name {
                     if !seen_names.insert(name) {
-                        println!("{}: {}", bkt, name);
+                        println!("{bkt}: {name}");
                     }
                 }
             }
@@ -162,7 +162,7 @@ impl TypesStage4 {
         {
             println!("All Resolved names:");
             for (bkt, name) in &bkt2name {
-                println!("{}: {}", bkt, name);
+                println!("{bkt}: {name}",);
             }
         }
         Ok(bkt2name)

@@ -86,7 +86,7 @@ impl ProgressPrinter {
         } else {
             &text
         };
-        eprint!("\u{1b}[1K\r{}{}", prefix, text);
+        eprint!("\u{1b}[1K\r{prefix}{text}");
         let _ = std::io::stderr().flush();
     }
 

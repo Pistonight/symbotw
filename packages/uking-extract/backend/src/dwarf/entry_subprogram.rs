@@ -125,7 +125,7 @@ impl<'i> UnitCtx<'_, 'i> {
                 offset,
                 Error::BadEntryAttrType(DW_AT_abstract_origin, "UnitRef")
             )
-            .attach_printable(format!("Got: {:?}", origin)),
+            .attach_printable(format!("Got: {origin:?}",)),
         }
     }
 
@@ -149,7 +149,7 @@ impl<'i> UnitCtx<'_, 'i> {
                 offset,
                 Error::BadEntryAttrType(DW_AT_specification, "UnitRef")
             )
-            .attach_printable(format!("Got: {:?}", origin)),
+            .attach_printable(format!("Got: {origin:?}",)),
         }
     }
 
@@ -173,7 +173,7 @@ impl<'i> UnitCtx<'_, 'i> {
                 offset,
                 Error::BadEntryAttrType(DW_AT_virtuality, "Virtuality")
             )
-            .attach_printable(format!("Got: {:?}", inline)),
+            .attach_printable(format!("Got: {inline:?}",)),
         }
     }
 

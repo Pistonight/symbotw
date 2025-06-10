@@ -267,8 +267,8 @@ pub fn extract(
                 }
                 if !found {
                     let r = report!(Error::UnmatchedSymbol)
-                        .attach_printable(format!("Symbol: {}", symbol))
-                        .attach_printable(format!("Address: 0x{:016x}", address));
+                        .attach_printable(format!("Symbol: {symbol}",))
+                        .attach_printable(format!("Address: 0x{address:016x}",));
                     return Err(r);
                 }
             }
@@ -393,10 +393,9 @@ fn read_subprogram<'i>(
                 if let Some(old_name) = elf_addr_to_name.insert(addr, linkage_name.to_string()) {
                     if old_name != linkage_name {
                         return bad!(unit, unit.to_global_offset(offset), Error::ConflictingName)
-                            .attach_printable(format!("Function `{}`", linkage_name))
+                            .attach_printable(format!("Function `{linkage_name}`"))
                             .attach_printable(format!(
-                                "0x{:08x} is already assigned to `{}`",
-                                addr, old_name
+                                "0x{addr:08x} is already assigned to `{old_name}`",
                             ));
                     }
                 }
@@ -577,8 +576,8 @@ fn try_get_alt_name<'i>(
                         Error::UnexpectedLinkageName
                     )
                     .attach_printable("linkage_name should include name")
-                    .attach_printable(format!("linkage_name: {}", linkage_name))
-                    .attach_printable(format!("name: {}", name));
+                    .attach_printable(format!("linkage_name: {linkage_name}",))
+                    .attach_printable(format!("name: {name}",));
                 }
                 Some(x) => {
                     if idx <= x {
@@ -622,9 +621,9 @@ fn try_add_or_merge_info(
         }
         let check = old_info.check_and_merge(addr_info.clone(), types);
         err_ctx!(unit, offset, Error::ConflictingInfo, check)
-            .attach_printable(format!("Function `{}`", linkage_name))
-            .attach_printable(format!("Old Info: {}", old_info))
-            .attach_printable(format!("New Info: {}", addr_info))?;
+            .attach_printable(format!("Function `{linkage_name}`",))
+            .attach_printable(format!("Old Info: {old_info}",))
+            .attach_printable(format!("New Info: {addr_info}",))?;
         return Ok(true);
     } else if let Some(uking_address) = uking_symbols.remove(linkage_name) {
         // replace name in case an alt name is used for ctor/dtor
