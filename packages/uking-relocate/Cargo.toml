@@ -7,10 +7,10 @@ publish = false
 
 [dependencies]
 anyhow = "1.0.98"
-blueflame = { git = "https://github.com/Pistonite/botw-ist", rev = "4c3445f85a941358e51e88b7a55cf740374100f3", default-features = false }
-clap = { version = "4.5.38", features = ["derive"] }
+blueflame = { git = "https://github.com/Pistonite/botw-ist", rev = "d12ad85ea98fd78dbece631af945bd8598e31d49", default-features = false }
+clap = { version = "4.5.40", features = ["derive"] }
 derive_more = { version = "2.0.1", features = ["full"] }
-elf = "0.7.4"
-memchr = "2.7.4"
+elf = "0.8.0"
+memchr = "2.7.5"
 roead = "1.0.0"
 thiserror = "2.0.12"
