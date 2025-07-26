@@ -6,6 +6,7 @@ description = "Tool for relocating uking binaries"
 publish = false
 
 [dependencies]
+cu = { version = "0.1.0", path = "../copper" }
 anyhow = "1.0.98"
 blueflame = { git = "https://github.com/Pistonite/botw-ist", rev = "d12ad85ea98fd78dbece631af945bd8598e31d49", default-features = false }
 clap = { version = "4.5.40", features = ["derive"] }
