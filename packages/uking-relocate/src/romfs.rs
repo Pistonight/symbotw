@@ -1,6 +1,7 @@
 use std::path::{Path, PathBuf};
 
-use anyhow::bail;
+use cu::prelude::*;
+
 pub struct Romfs {
     /// Path to Actor/ActorInfo.product.sbyml (or .byml)
     pub actor_info: PathBuf,
@@ -9,48 +10,52 @@ pub struct Romfs {
 impl Romfs {
     pub fn find_paths(
         sdk_path: impl AsRef<Path>,
-        romfs_path: Option<&Path>,
-    ) -> anyhow::Result<Self> {
+        romfs_path: Option<&str>,
+    ) -> cu::Result<Self> {
         let sdk_path = sdk_path.as_ref();
-        let Some(exefs_dir) = sdk_path.parent() else {
-            bail!("failed to find romfs directory");
-        };
-        let Some(actor_info) =
-            find_romfs_file(exefs_dir, romfs_path, "Actor/ActorInfo.product.sbyml")
-        else {
-            bail!("failed to find Actor/ActorInfo.product.sbyml in romfs");
-        };
-        println!("-- [romfs] found ActorInfo.product.sbyml");
+        let exefs_dir = sdk_path.parent_abs().context("failed to find romfs directory")?;
+        let actor_info = find_romfs_file(&exefs_dir, romfs_path, "Actor/ActorInfo.product.sbyml")?;
         Ok(Self { actor_info })
     }
 
-    pub fn load_actor_info_data(&self) -> anyhow::Result<Vec<u8>> {
-        println!("-- [romfs] loading ActorInfo.product.sbyml");
-        let bytes = std::fs::read(&self.actor_info)?;
+    pub fn load_actor_info_data(&self) -> cu::Result<Vec<u8>> {
+        cu::info!("loading romfs actor info");
+        let bytes = cu::fs::read(&self.actor_info)?;
         let decompressed_bytes = roead::yaz0::decompress_if(&bytes);
         Ok(decompressed_bytes.to_vec())
     }
 }
 
-fn find_romfs_file(base: &Path, romfs_base: Option<&Path>, file: &str) -> Option<PathBuf> {
+fn find_romfs_file(base: &Path, romfs_base: Option<&str>, file: &str) -> cu::Result<PathBuf> {
+    // if a romfs base is given, then we just use that
     if let Some(romfs_base) = romfs_base {
-        return find_file_in_romfs_root(romfs_base, file);
+        let Some(x) = find_file_in_romfs_root(Path::new(romfs_base), file) else {
+            cu::bail!("failed to find romfs file '{file}' in '{romfs_base}'");
+        };
+        cu::info!("found romfs file '{file}': {}", x.try_to_rel().display());
+        return Ok(x);
     }
+    cu::debug!("--romfs option not given, trying to infer location of '{file}'");
+    // otherwise, try to search for romfs directory
     let base_romfs = base.join("romfs");
     if base_romfs.is_dir() {
+        cu::debug!("trying to find location of '{file}' in {}", base_romfs.display());
         if let Some(path) = find_file_in_romfs_root(&base_romfs, file) {
-            return Some(path);
+            cu::info!("found romfs file '{file}': {}", path.try_to_rel().display());
+            return Ok(path);
         }
     }
     // try parent of base
-    let parent = base.parent()?;
+    let parent = base.parent_abs()?;
     let parent_romfs = parent.join("romfs");
     if parent_romfs.is_dir() {
+        cu::debug!("trying to find location of '{file}' in {}", parent_romfs.display());
         if let Some(path) = find_file_in_romfs_root(&parent_romfs, file) {
-            return Some(path);
+            cu::info!("found romfs file '{file}': {}", path.try_to_rel().display());
+            return Ok(path);
         }
     }
-    None
+    cu::bail!("could not find romfs file '{file}'");
 }
 
 fn find_file_in_romfs_root(root: &Path, file: &str) -> Option<PathBuf> {

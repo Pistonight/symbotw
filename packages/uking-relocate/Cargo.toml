@@ -1,17 +1,15 @@
 [package]
 name = "uking-relocate"
 version = "0.0.0"
-edition = "2021"
+edition = "2024"
 description = "Tool for relocating uking binaries"
 publish = false
 
 [dependencies]
 cu = { version = "0.1.0", path = "../copper" }
-anyhow = "1.0.98"
-blueflame = { git = "https://github.com/Pistonite/botw-ist", rev = "d12ad85ea98fd78dbece631af945bd8598e31d49", default-features = false }
+blueflame = { git = "https://github.com/Pistonite/botw-ist", rev = "30b8890a139baa474801b9f2759784e39a3873c0", default-features = false }
 clap = { version = "4.5.40", features = ["derive"] }
 derive_more = { version = "2.0.1", features = ["full"] }
 elf = "0.8.0"
 memchr = "2.7.5"
 roead = "1.0.0"
-thiserror = "2.0.12"

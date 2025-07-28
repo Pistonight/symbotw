@@ -155,6 +155,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5e764a1d40d510daf35e07be9eb06e75770908c27d411ee6c92109c9840eaaf7"
 
 [[package]]
+name = "bitfield-struct"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d3ca019570363e800b05ad4fd890734f28ac7b72f563ad8a35079efb793616f8"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.102",
+]
+
+[[package]]
 name = "bitflags"
 version = "2.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -172,9 +183,10 @@ dependencies = [
 [[package]]
 name = "blueflame"
 version = "0.0.0"
-source = "git+https://github.com/Pistonite/botw-ist?rev=d12ad85ea98fd78dbece631af945bd8598e31d49#d12ad85ea98fd78dbece631af945bd8598e31d49"
+source = "git+https://github.com/Pistonite/botw-ist?rev=30b8890a139baa474801b9f2759784e39a3873c0#30b8890a139baa474801b9f2759784e39a3873c0"
 dependencies = [
  "bit-set",
+ "bitfield-struct",
  "blueflame-deps",
  "blueflame-proc-macros",
  "crc32fast",
@@ -198,12 +210,12 @@ dependencies = [
 [[package]]
 name = "blueflame-deps"
 version = "0.0.0"
-source = "git+https://github.com/Pistonite/botw-ist?rev=d12ad85ea98fd78dbece631af945bd8598e31d49#d12ad85ea98fd78dbece631af945bd8598e31d49"
+source = "git+https://github.com/Pistonite/botw-ist?rev=30b8890a139baa474801b9f2759784e39a3873c0#30b8890a139baa474801b9f2759784e39a3873c0"
 
 [[package]]
 name = "blueflame-proc-macros"
 version = "0.0.0"
-source = "git+https://github.com/Pistonite/botw-ist?rev=d12ad85ea98fd78dbece631af945bd8598e31d49#d12ad85ea98fd78dbece631af945bd8598e31d49"
+source = "git+https://github.com/Pistonite/botw-ist?rev=30b8890a139baa474801b9f2759784e39a3873c0#30b8890a139baa474801b9f2759784e39a3873c0"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -365,9 +377,11 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "clap",
+ "dunce",
  "env_filter",
  "log",
  "oneshot",
+ "pathdiff",
  "serde",
  "serde_json",
  "serde_yaml_ng",
@@ -920,6 +934,12 @@ name = "paste"
 version = "1.0.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "57c0d7b74b563b49d38dae00a0c37d4d6de9b432382b2892f0574ddcae73fd0a"
+
+[[package]]
+name = "pathdiff"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "df94ce210e5bc13cb6651479fa48d14f601d9858cfe0467f43ae157023b938d3"
 
 [[package]]
 name = "phf"
@@ -1572,7 +1592,6 @@ dependencies = [
 name = "uking-relocate"
 version = "0.0.0"
 dependencies = [
- "anyhow",
  "blueflame",
  "clap",
  "cu",
@@ -1580,7 +1599,6 @@ dependencies = [
  "elf",
  "memchr",
  "roead",
- "thiserror 2.0.12",
 ]
 
 [[package]]

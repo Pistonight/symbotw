@@ -1,17 +1,18 @@
 use std::cell::RefCell;
 use std::collections::VecDeque;
 use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
-use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{Arc, LazyLock, Mutex, OnceLock, Weak};
-use std::thread::{JoinHandle, Thread};
+use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 
+use anyhow::Context as _;
 use clap::ValueEnum;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
 pub enum ColorLevel {
     Always,
     Never,
+    #[default]
     Auto,
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -46,9 +47,11 @@ impl From<PrintLevel> for log::LevelFilter {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(u8)]
 pub enum PromptLevel {
     /// Show prompts interactively
-    Auto,
+    Interactive,
     /// Automatically answer "Yes" to all yes/no prompts, and `Auto` for regular prompts
     Yes,
     /// Do not allow prompts (non-interactive). Attempting to show prompt will error
@@ -96,6 +99,14 @@ static GLOBAL_LOG_FILTER: OnceLock<env_filter::Filter> = OnceLock::new();
 pub(crate) fn set_log_filter(filter: env_filter::Filter) {
     let _ = GLOBAL_LOG_FILTER.set(filter);
 }
+static GLOBAL_PROMPT_LEVEL: AtomicU8 = AtomicU8::new(0);
+fn get_prompt_level() -> PromptLevel {
+    let v = GLOBAL_PROMPT_LEVEL.load(Ordering::SeqCst);
+    unsafe { std::mem::transmute(v) }
+}
+fn set_prompt_level(level: PromptLevel) {
+    GLOBAL_PROMPT_LEVEL.store(level as u8, Ordering::SeqCst);
+}
 
 static GLOBAL_PRINT_LEVEL: AtomicU8 = AtomicU8::new(2);
 fn get_print_level() -> PrintLevel {
@@ -104,24 +115,26 @@ fn get_print_level() -> PrintLevel {
 }
 fn set_print_level(level: PrintLevel) {
     GLOBAL_PRINT_LEVEL.store(level as u8, Ordering::SeqCst);
-    log::set_max_level(level.into());
 }
-static GLOBAL_USE_COLOR: LazyLock<AtomicBool> = LazyLock::new(|| {
-    use std::io::IsTerminal;
-    AtomicBool::new(std::io::stdout().is_terminal())
-});
+static GLOBAL_USE_COLOR: AtomicBool = AtomicBool::new(true);
 static GLOBAL_PRINT: LazyLock<Mutex<Printer>> = LazyLock::new(|| Mutex::new(Printer::default()));
 
 /// Set global print options. This is usually called from clap args
-pub fn init_print_options(color: ColorLevel, level: PrintLevel) {
-    if let Ok(value) = std::env::var("RUST_LOG") {
-        if !value.is_empty() {
-            let mut builder = env_filter::Builder::new();
-            let filter = builder.parse(&value).build();
-            set_log_filter(filter);
-        }
-    };
+///
+/// If prompt option is `None`, it will be `Interactive` unless env var `CI` is `true` or `1`, in which case it becomes `No`
+pub fn init_print_options(color: ColorLevel, level: PrintLevel, prompt: Option<PromptLevel>) {
     use std::io::IsTerminal;
+
+    let log_level = if let Ok(value) = std::env::var("RUST_LOG") && !value.is_empty() {
+        let mut builder = env_filter::Builder::new();
+        let filter = builder.parse(&value).build();
+        let log_level = filter.filter();
+        set_log_filter(filter);
+        log_level.max(level.into())
+    } else {
+        level.into()
+    };
+    log::set_max_level(log_level);
     let use_color = match color {
         ColorLevel::Always => true,
         ColorLevel::Never => false,
@@ -137,7 +150,11 @@ pub fn init_print_options(color: ColorLevel, level: PrintLevel) {
     impl log::Log for LogImpl {
         fn enabled(&self, metadata: &log::Metadata) -> bool {
             match GLOBAL_LOG_FILTER.get() {
-                Some(filter) => filter.enabled(metadata),
+                Some(filter) => {
+                    let x = filter.enabled(metadata);
+                    // eprintln!("{filter:?}, enabled={x}");
+                    return x
+                }
                 None => {
                     let typ: __PrintType = metadata.level().into();
                     typ.can_print(get_print_level())
@@ -161,6 +178,22 @@ pub fn init_print_options(color: ColorLevel, level: PrintLevel) {
     }
 
     let _ = log::set_logger(&LogImpl);
+
+    let prompt = match prompt {
+        Some(x) => x,
+        None => {
+            let is_ci = std::env::var("CI").map(|mut x| {
+                x.make_ascii_lowercase();
+                matches!(x.trim(), "true" | "1")
+            }).unwrap_or_default();
+            if is_ci {
+                PromptLevel::No
+            } else {
+                PromptLevel::Interactive
+            }
+        }
+    };
+    set_prompt_level(prompt);
 }
 
 
@@ -189,7 +222,60 @@ pub fn __print_with_type(typ: __PrintType, message: std::fmt::Arguments<'_>) {
     }
 }
 
-pub fn __prompt(message: std::fmt::Arguments<'_>) {
+pub fn __prompt_yesno(message: std::fmt::Arguments<'_>) -> crate::Result<bool> {
+    match get_prompt_level() {
+        PromptLevel::Interactive => {}
+        PromptLevel::Yes => return Ok(true),
+        PromptLevel::No => {
+            crate::bailand!(error!("prompt not allowed in non-interactive mode: {message}"));
+        }
+    }
+
+    let message = format!("{message} [y/n]");
+    let _scope = PromptJoinScope;
+    loop {
+        let recv = {
+            let Ok(mut printer) = GLOBAL_PRINT.lock() else {
+                crate::bailand!(error!("prompt failed: global print lock poisoned"));
+            };
+            printer.format_prompt(&message);
+            printer.prompt_format_buffer()
+        };
+        let result = recv.recv().with_context(|| format!("recv error while showing the prompt: {message}"))?;
+        match result {
+            Err(e) => {
+                Err(e).context(format!("io error while showing the prompt: {message}"))?;
+            }
+            Ok(mut x) => {
+                x.make_ascii_lowercase();
+                match x.trim() {
+                    "y" | "yes" => return Ok(true),
+                    "n" | "no" => return Ok(false),
+                    _ => {}
+                }
+            }
+        }
+        crate::error!("please enter yes or no");
+    }
+    
+}
+
+pub fn __prompt(message: std::fmt::Arguments<'_>) -> crate::Result<String> {
+    if let PromptLevel::No = get_prompt_level() {
+        crate::bailand!(error!("prompt not allowed in non-interactive mode: {message}"));
+    }
+    let message = format!("{message}");
+    let _scope = PromptJoinScope;
+    let recv = {
+        let Ok(mut printer) = GLOBAL_PRINT.lock() else {
+            crate::bailand!(error!("prompt failed: global print lock poisoned"));
+        };
+        printer.format_prompt(&message);
+        printer.prompt_format_buffer()
+    };
+    let result = recv.recv().with_context(|| format!("recv error while showing the prompt: {message}"))?;
+
+    result.with_context(|| format!("io error while showing the prompt: {message}"))
 }
 
 
@@ -207,6 +293,22 @@ macro_rules! hint {
         $crate::__priv::__print_with_type($crate::__priv::__PrintType::Hint, format_args!($($fmt_args)*));
     }}
 }
+/// Show a Yes/No prompt
+#[cfg(feature = "prompt")]
+#[macro_export]
+macro_rules! yesno {
+    ($($fmt_args:tt)*) => {{
+        $crate::__priv::__prompt_yesno(format_args!($($fmt_args)*))
+    }}
+}
+/// Show a prompt
+#[cfg(feature = "prompt")]
+#[macro_export]
+macro_rules! prompt {
+    ($($fmt_args:tt)*) => {{
+        $crate::__priv::__prompt(format_args!($($fmt_args)*))
+    }}
+}
 /// Update a progress bar
 #[macro_export]
 macro_rules! progress {
@@ -216,6 +318,37 @@ macro_rules! progress {
     ($bar:ident, $current:expr, $($fmt_args:tt)*) => {{
         let message = format!($($fmt_args)*);
         $bar.set($current, Some(message));
+    }}
+}
+/// Format and invoke a print macro
+///
+/// # Example
+/// ```rust
+///
+/// let x = cu::fmtand!(error!("found {} errors", 3));
+/// assert_eq!(x, "found 3 errors");
+/// ```
+#[macro_export]
+macro_rules! fmtand {
+    ($mac:ident !( $($fmt_args:tt)* )) => {{
+        let s = format!($($fmt_args)*);
+        $crate::$mac!("{s}");
+        s
+    }}
+}
+/// Invoke a print macro, and bail with the same message
+///
+/// # Example
+/// ```rust,no_run
+///
+/// let x = cu::bailand!(error!("found {} errors", 3));
+/// ```
+#[macro_export]
+macro_rules! bailand {
+    ($mac:ident !( $($fmt_args:tt)* )) => {{
+        let s = format!($($fmt_args)*);
+        $crate::$mac!("{s}");
+        $crate::bail!(s);
     }}
 }
 
@@ -245,6 +378,11 @@ struct Colors {
     green: &'static str,
 }
 
+#[derive(Clone, Copy)]
+struct Controls {
+    move_to_begin_and_clear: &'static str,
+}
+
 static NOCOLOR: Colors = Colors {
     reset: "",
     yellow: "",
@@ -264,6 +402,15 @@ static COLOR: Colors = Colors {
     cyan: "\x1b[1;36m",
     green: "\x1b[1;32m",
 };
+
+static NOCONTROL: Controls = Controls {
+    move_to_begin_and_clear: ""
+};
+
+static CONTROL: Controls = Controls {
+    move_to_begin_and_clear: "\r\x1b[K"
+};
+
 
 #[derive(PartialEq, Eq)]
 enum ProgressBarTarget {
@@ -291,6 +438,7 @@ impl Default for ProgressBarTarget {
 pub struct Printer {
     stdout: std::io::Stdout,
     colors: Colors,
+    controls: Controls,
 
     bar_target: ProgressBarTarget,
     print_thread_stopped: Arc<AtomicBool>,
@@ -307,9 +455,12 @@ pub struct Printer {
 
 impl Default for Printer {
     fn default() -> Self {
+        use std::io::IsTerminal as _;
+        let is_terminal = std::io::stdout().is_terminal();
         Self {
             stdout: std::io::stdout(),
-            colors: COLOR,
+            colors: if is_terminal { COLOR } else { NOCOLOR },
+            controls: if is_terminal { CONTROL } else { NOCONTROL },
 
             bar_target: ProgressBarTarget::default(),
             print_thread_stopped: Arc::new(AtomicBool::new(true)),
@@ -331,14 +482,18 @@ impl Printer {
         // x is already formatted
         let (send, recv) = oneshot::channel();
         if !self.prompt_active {
+            if let Some(x) = self.prompt_thread_handle.take() {
+                let _ = x.join();
+            }
             use std::io::Write;
             self.prompt_active = true;
             // erase current line, and print new prompt
             // this may mess up progress bars - having both prompts
             // and progress bar is not a good idea anyway
-            let _ = write!(self.stdout, "\r\x1b[K{}", self.format_buffer.as_str());
+            let _ = write!(self.stdout, "{}{}{}", self.controls.move_to_begin_and_clear, self.buffered, self.format_buffer.as_str());
+            self.buffered.clear();
             let _ = self.stdout.flush();
-            prompt_thread(send);
+            self.prompt_thread_handle = Some(prompt_thread(send));
             return recv;
         }
         self.pending_prompts.push_back((send, self.format_buffer.take()));
@@ -495,14 +650,15 @@ impl Printer {
                 self.format_buffer.push(']', 1);
             }
         }
-        self.format_buffer.push_control(text_color);
         THREAD_NAME.with_borrow(|x| {
             if let Some(x) = x {
+                self.format_buffer.push_control(self.colors.magenta);
                 self.format_buffer.push('[', 1);
                 self.format_buffer.push_str(x);
                 self.format_buffer.push(']', 1);
             }
         });
+        self.format_buffer.push_control(text_color);
         if let Some(line) = lines.next() {
             self.format_buffer.push(' ', 1);
             self.format_buffer.push_str(line);
@@ -834,7 +990,9 @@ impl Drop for PromptJoinScope {
     }
 }
 
-fn prompt_thread(first_send: oneshot::Sender<std::io::Result<String>>) {
+fn prompt_thread(first_send: oneshot::Sender<std::io::Result<String>>) -> JoinHandle<()> {
+    use std::io::Write;
+    let mut stdout = std::io::stdout();
     std::thread::spawn(move || {
         let mut send = first_send;
         let mut buf = String::new();
@@ -849,10 +1007,12 @@ fn prompt_thread(first_send: oneshot::Sender<std::io::Result<String>>) {
                 printer.prompt_active = false;
                 break;
             };
-            print!("\r\x1b[K{}", next.1);
+            let _ = write!(stdout, "{}{}{}", printer.controls.move_to_begin_and_clear, printer.buffered, next.1);
+            printer.buffered.clear();
+            let _ = stdout.flush();
             send = next.0;
         }
-    });
+    })
 }
 
 struct FormatBuffer {
@@ -947,8 +1107,9 @@ impl<'a> Iterator for AnsiWidthIter<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         let c = self.chars.next()?;
+        // we only do very basic check right now
         let width = if self.is_escaping {
-            if c == 'm' {
+            if c < u8::MAX as char && b"mAKGJBCDEFHSTfhlin".into_iter().find(|x|**x==c as u8).is_some() {
                 self.is_escaping = false;
             }
             0

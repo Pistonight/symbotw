@@ -1,6 +1,7 @@
 use std::path::Path;
 
-use anyhow::{anyhow, bail};
+use blueflame::env::GameVer;
+use cu::prelude::*;
 
 pub struct ModuleData {
     pub rtld: Vec<u8>,
@@ -11,53 +12,45 @@ pub struct ModuleData {
 }
 
 impl ModuleData {
-    pub fn load(path: &str) -> anyhow::Result<Self> {
+    pub fn load(path: &str) -> cu::Result<Self> {
         if !path.contains("sdk") {
-            bail!("the input file must contain 'sdk' in its name")
+            cu::bail!("the input file must contain 'sdk' in its name")
         }
-        println!("-- loading the modules...");
+        cu::info!("loading sdk module from {path}");
         // note that we cannot use any integrity checks here,
         // as the ELF files could be different depending on how
         // it is decompressed and converted from NSO
-        let sdk_data = std::fs::read(path)?;
+        let sdk_data = cu::fs::read(path)?;
         let has_150 = memchr::memmem::find(&sdk_data, b"sdk_version: 4.4.0").is_some();
         let has_160 = memchr::memmem::find(&sdk_data, b"sdk_version: 7.3.2").is_some();
         let info = match (has_150, has_160) {
             (true, false) => {
-                println!("sdk version matches 1.5.0");
-                Modules::new_1_5_0()
+                cu::info!("sdk version matches 1.5.0");
+                Modules::new_150()
             }
             (false, true) => {
-                println!("sdk version matches 1.6.0");
-                Modules::new_1_6_0()
+                cu::info!("sdk version matches 1.6.0");
+                Modules::new_160()
             }
-            _ => bail!("the input files does not match a known version of the game"),
+            // TODO: 1.8
+            _ => cu::bail!("the input files does not match a supported version (only 1.5.0 and 1.6.0 are supported right now)"),
         };
 
-        let file_name = Path::new(path)
-            .file_name()
-            .ok_or_else(|| anyhow!("cannot get file name"))?
-            .to_os_string()
-            .into_string()
-            .map_err(|_| anyhow!("cannot convert file name to string"))?;
-
-        let directory = Path::new(path)
-            .parent()
-            .ok_or_else(|| anyhow!("cannot get parent directory"))?;
+        let path = Path::new(path);
+        let file_name = path.file_name_str()?;
+        let directory = path.parent_abs().context("cannot get exefs directory")?;
 
         let rtld_path = directory.join(file_name.replace("sdk", "rtld"));
-        println!("rtld    : {}", rtld_path.display());
-        let rtld_data = std::fs::read(&rtld_path)?;
+        cu::info!("inferred path for rtld    : {}", rtld_path.try_to_rel().display());
+        let rtld_data = cu::fs::read(&rtld_path)?;
 
         let main_path = directory.join(file_name.replace("sdk", "main"));
-        println!("main    : {}", main_path.display());
-        let main_data = std::fs::read(&main_path)?;
+        cu::info!("inferred path for main    : {}", main_path.try_to_rel().display());
+        let main_data = cu::fs::read(&main_path)?;
 
         let subsdk0_path = directory.join(file_name.replace("sdk", "subsdk0"));
-        println!("subsdk0 : {}", subsdk0_path.display());
-        let subsdk0_data = std::fs::read(&subsdk0_path)?;
-
-        println!("sdk     : {path}");
+        cu::info!("inferred path for subsdk0 : {}", subsdk0_path.try_to_rel().display());
+        let subsdk0_data = cu::fs::read(&subsdk0_path)?;
 
         let data = Self {
             rtld: rtld_data,
@@ -73,7 +66,7 @@ impl ModuleData {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Modules {
-    pub is_1_6_0: bool,
+    pub ver: GameVer,
     pub rtld: ModuleInfo,
     pub main: ModuleInfo,
     pub subsdk0: ModuleInfo,
@@ -81,9 +74,9 @@ pub struct Modules {
 }
 
 impl Modules {
-    pub fn new_1_5_0() -> Self {
+    pub fn new_150() -> Self {
         Self {
-            is_1_6_0: false,
+            ver: GameVer::X150,
             rtld: ModuleInfo {
                 start: 0x0,
                 text_end: 0x2000,
@@ -106,9 +99,9 @@ impl Modules {
             },
         }
     }
-    pub fn new_1_6_0() -> Self {
+    pub fn new_160() -> Self {
         Self {
-            is_1_6_0: true,
+            ver: GameVer::X160,
             rtld: ModuleInfo {
                 start: 0x0,
                 text_end: 0x2000,
