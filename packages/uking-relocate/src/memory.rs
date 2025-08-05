@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use cu::prelude::*;
+use cu::pre::*;
 
 use elf::abi::{
     PT_LOAD, R_AARCH64_ABS64, R_AARCH64_GLOB_DAT, R_AARCH64_JUMP_SLOT, R_AARCH64_RELATIVE,

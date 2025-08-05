@@ -1,7 +1,7 @@
 use std::collections::btree_map::Entry;
 use std::collections::{BTreeMap, HashMap};
 
-use cu::prelude::*;
+use cu::pre::*;
 
 use derive_more::Deref;
 

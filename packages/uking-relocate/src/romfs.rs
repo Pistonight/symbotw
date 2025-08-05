@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use cu::prelude::*;
+use cu::pre::*;
 
 pub struct Romfs {
     /// Path to Actor/ActorInfo.product.sbyml (or .byml)

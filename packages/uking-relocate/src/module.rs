@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use blueflame::env::GameVer;
-use cu::prelude::*;
+use cu::pre::*;
 
 pub struct ModuleData {
     pub rtld: Vec<u8>,

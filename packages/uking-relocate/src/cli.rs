@@ -1,5 +1,5 @@
 use clap::Parser;
-use cu::prelude::*;
+use cu::pre::*;
 
 use crate::memory::{align_down, align_up};
 use crate::module::ModuleType;
@@ -51,13 +51,7 @@ pub struct Cli {
     pub regions: Vec<RegionArg>,
 
     #[clap(flatten)]
-    pub common: cu::CliFlags
-}
-
-impl AsRef<cu::CliFlags> for Cli {
-    fn as_ref(&self) -> &cu::CliFlags {
-        &self.common
-    }
+    pub common: cu::cli::Flags
 }
 
 fn parse_region(arg: &str) -> cu::Result<RegionArg> {

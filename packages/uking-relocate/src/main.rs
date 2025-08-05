@@ -1,6 +1,4 @@
-use std::process::ExitCode;
-
-use cu::prelude::*;
+use cu::pre::*;
 
 use blueflame::env::DataId;
 use blueflame::program;
@@ -16,11 +14,9 @@ use memory::Memory;
 use module::ModuleData;
 use romfs::Romfs;
 
-fn main() -> ExitCode {
-    cu::cli_wrapper(main_internal)
-}
 
-fn main_internal(cli: Cli) -> cu::Result<()> {
+#[cu::cli(flags = "common")]
+fn main(cli: Cli) -> cu::Result<()> {
 
     if cli.start & 0xFFFFFF00000FFFFF != 0 {
         cu::bail!("invalid program start (see --help)");
@@ -51,14 +47,18 @@ fn main_internal(cli: Cli) -> cu::Result<()> {
         .add_data(DataId::ActorInfoByml, romfs.load_actor_info_data()?)
         .done();
 
-    cu::info!("packing the program");
-    let data = program::pack(&program).context("failed to pack program")?;
-    cu::info!("packed size: {} bytes", data.len());
-    cu::info!("verifying the pack");
-    let program2 = program::unpack(&data).context("failed to unpack program for verification")?;
-    if program != program2 {
-        cu::bail!("the unpacked program does not match the original program");
-    }
+    let data = {
+        let bar = cu::progress_unbounded("packing the program");
+        let data = program::pack(&program).context("failed to pack program")?;
+        cu::info!("packed size: {} bytes", data.len());
+        cu::progress!(&bar, (), "verifying the pack");
+        let program2 = program::unpack(&data).context("failed to unpack program for verification")?;
+        if program != program2 {
+            cu::bail!("the unpacked program does not match the original program");
+        }
+        data
+    };
+
     cu::info!("writing output file to: {}", cli.output);
 
     cu::fs::write(cli.output, data).context("failed to write output file")?;

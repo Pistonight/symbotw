@@ -5,6 +5,5 @@ members = [
     "packages/uking-extract/frontend",
     "packages/uking-extract", 
     "packages/uking-relocate",
-    "packages/copper",
 ]
 resolver = "2"
