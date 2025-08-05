@@ -1,15 +1,16 @@
 use std::collections::btree_map::Entry;
 use std::collections::{BTreeMap, HashMap};
 
-use anyhow::{anyhow, bail};
+use cu::pre::*;
+
 use derive_more::Deref;
 
+use elf::ElfBytes;
 use elf::abi::{STB_LOCAL, STB_WEAK, STV_HIDDEN, STV_INTERNAL, STV_PROTECTED};
 use elf::endian::LittleEndian;
 use elf::parse::{ParsingIterator, ParsingTable};
 use elf::relocation::Rela;
 use elf::segment::ProgramHeader;
-use elf::ElfBytes;
 
 use crate::module::ModuleType;
 
@@ -22,11 +23,12 @@ pub struct ElfWrapper<'data> {
 }
 
 impl<'data> ElfWrapper<'data> {
-    pub fn try_parse(data: &'data [u8]) -> anyhow::Result<Self> {
+    pub fn try_parse(data: &'data [u8]) -> cu::Result<Self> {
+        cu::debug!("parsing elf, size={}", data.len());
         let elf = ElfBytes::minimal_parse(data)?;
-        let segments = elf
-            .segments()
-            .ok_or_else(|| anyhow!("unexpected empty program header table"))?;
+        let Some(segments) = elf.segments() else {
+            cu::bailand!(error!("unexpected empty program header table"));
+        };
         Ok(Self { elf, segments })
     }
 
@@ -40,10 +42,14 @@ impl<'data> ElfWrapper<'data> {
         module: ModuleType,
         start: u64,
         table: &mut BTreeMap<String, SymbolValue>,
-    ) -> anyhow::Result<u32> {
-        let (dynsyms, strtab) = self
-            .dynamic_symbol_table()?
-            .ok_or_else(|| anyhow!("missing dynamic symbol table"))?;
+    ) -> cu::Result<u32> {
+        cu::debug!("loading dynamic symbol table for '{module}'");
+        let Some((dynsyms, strtab)) = self
+            .dynamic_symbol_table()
+            .context("failed to parse dynamic symbol table")?
+        else {
+            cu::bailand!(error!("missing dynamic symbol table"));
+        };
         let mut count = 0;
         for sym in dynsyms {
             if sym.is_undefined() {
@@ -83,32 +89,43 @@ impl<'data> ElfWrapper<'data> {
                         entry.insert(value);
                     } else if !value.weak {
                         // if both are strong, it's an error
-                        bail!("duplicate symbol in {}: {}", module, name);
+                        cu::bailand!(error!("found duplicate strong symbol in {module}: {name}"));
                     }
                 }
             }
             count += 1;
         }
+        cu::info!("loaded {count} dynamic symbols from {module}");
         Ok(count)
     }
 
     // BOTW only has .rela.dyn and .rela.plt sections, not .rel
 
     /// Get the iterator for the .rela.dyn section
-    pub fn rela_dyn(&self) -> anyhow::Result<ParsingIterator<'data, LittleEndian, Rela>> {
+    pub fn rela_dyn(&self) -> cu::Result<ParsingIterator<'data, LittleEndian, Rela>> {
+        let Some(rela_dyn) = self
+            .section_header_by_name(".rela.dyn")
+            .context("parse error when finding .rela.dyn section")?
+        else {
+            cu::bailand!(error!("missing .rela.dyn section"));
+        };
         let rela_dyn = self
-            .section_header_by_name(".rela.dyn")?
-            .ok_or_else(|| anyhow!("missing .rela.dyn section"))?;
-        let rela_dyn = self.section_data_as_relas(&rela_dyn)?;
+            .section_data_as_relas(&rela_dyn)
+            .context("failed to parse .rela.dyn section")?;
         Ok(rela_dyn)
     }
 
     /// Get the iterator for the .rela.plt section
-    pub fn rela_plt(&self) -> anyhow::Result<ParsingIterator<'data, LittleEndian, Rela>> {
+    pub fn rela_plt(&self) -> cu::Result<ParsingIterator<'data, LittleEndian, Rela>> {
+        let Some(rela_plt) = self
+            .section_header_by_name(".rela.plt")
+            .context("parse error when finding .rela.plt section")?
+        else {
+            cu::bailand!(error!("missing .rela.plt section"));
+        };
         let rela_plt = self
-            .section_header_by_name(".rela.plt")?
-            .ok_or_else(|| anyhow!("missing .rela.plt section"))?;
-        let rela_plt = self.section_data_as_relas(&rela_plt)?;
+            .section_data_as_relas(&rela_plt)
+            .context("failed to parse .rela.plt section")?;
         Ok(rela_plt)
     }
 }
@@ -156,7 +173,7 @@ impl DynamicSymbolTables {
     /// Get the absolute physical address of a dynamic symbol
     ///
     /// module is the module that is trying to resolve the symbol
-    pub fn resolve(&self, _module: ModuleType, name: &str) -> anyhow::Result<u64> {
+    pub fn resolve(&self, _module: ModuleType, name: &str) -> cu::Result<u64> {
         if let Some(symbol) = self.magic.get(name) {
             return Ok(symbol.address);
         }
@@ -174,13 +191,15 @@ impl DynamicSymbolTables {
             results.push((ModuleType::Sdk, symbol));
         }
         if results.is_empty() {
-            bail!("cannot resolve dynamic symbol: {}", name);
+            cu::bail!("cannot resolve dynamic symbol: {name}");
         }
         if results.len() == 1 {
+            cu::debug!("uniquely resolved {name}");
             return Ok(results[0].1.address);
         }
         // if all of the symbols are weak, choose one arbitrarily
         if results.iter().all(|(_, symbol)| symbol.weak) {
+            cu::debug!("resolved weak {name}");
             return Ok(results[0].1.address);
         }
         // if one is strong, pick that one
@@ -188,7 +207,7 @@ impl DynamicSymbolTables {
         for (_, symbol) in &results {
             if !symbol.weak {
                 if strong_sym.is_some() {
-                    bail!("conflicting strong symbol: {}", name);
+                    cu::bailand!(warn!("conflicting strong symbol: {name}"));
                 }
                 strong_sym = Some(symbol);
             }
@@ -196,9 +215,9 @@ impl DynamicSymbolTables {
         if let Some(symbol) = strong_sym {
             return Ok(symbol.address);
         }
-        println!("{results:?}");
+        cu::warn!("ambiguous symbol found in results: {results:?}");
         // found more than one symbol, does it even happen?
-        bail!("ambiguous symbol: {name}");
+        cu::bail!("ambiguous symbol: {name}");
     }
 }
 

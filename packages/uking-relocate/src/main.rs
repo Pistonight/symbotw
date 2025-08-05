@@ -1,11 +1,7 @@
-use std::process::ExitCode;
+use cu::pre::*;
 
-use anyhow::bail;
-use clap::Parser;
-
-use blueflame::env::{DataId, GameVer};
+use blueflame::env::DataId;
 use blueflame::program;
-//use blueflame::program::{self, ProgramBuilder};
 
 mod cli;
 mod elf;
@@ -18,37 +14,23 @@ use memory::Memory;
 use module::ModuleData;
 use romfs::Romfs;
 
-fn main() -> ExitCode {
-    if let Err(e) = main_internal() {
-        eprintln!("error: {e:?}");
-        ExitCode::FAILURE
-    } else {
-        ExitCode::SUCCESS
-    }
-}
-
-fn main_internal() -> anyhow::Result<()> {
-    let cli = Cli::parse();
-
+#[cu::cli(flags = "common")]
+fn main(cli: Cli) -> cu::Result<()> {
     if cli.start & 0xFFFFFF00000FFFFF != 0 {
-        bail!("invalid program start (see readme)");
+        cu::bail!("invalid program start (see --help)");
     }
 
     // load the files
-    let data = ModuleData::load(&cli.sdk_elf)?;
-    let romfs_path = cli.romfs.as_ref().map(|s| s.as_ref());
-    let romfs = Romfs::find_paths(&cli.sdk_elf, romfs_path)?;
-    let game_ver = if data.info.is_1_6_0 {
-        GameVer::X160
-    } else {
-        GameVer::X150
-    };
+    let modules = ModuleData::load(&cli.sdk_elf).context("failed to load module data")?;
+    let romfs = Romfs::find_paths(&cli.sdk_elf, cli.romfs.as_deref())
+        .context("did not find all necessary files from romfs")?;
 
     // make the memory
-    let memory = Memory::load(cli.start, &data)?;
-    // build the program image
-    let info = &data.info;
-    let mut builder = program::builder(game_ver, cli.start, memory.get_program_size())
+    let memory = Memory::load(cli.start, &modules)?;
+
+    cu::info!("building the program image");
+    let info = &modules.info;
+    let mut builder = program::builder(info.ver, cli.start, memory.get_program_size())
         .add_module("rtld", info.rtld.start)
         .add_module("main", info.main.start)
         .add_module("subsdk0", info.subsdk0.start)
@@ -64,19 +46,22 @@ fn main_internal() -> anyhow::Result<()> {
         .add_data(DataId::ActorInfoByml, romfs.load_actor_info_data()?)
         .done();
 
-    println!("-- packing the program...");
-    let data = program::pack(&program)?;
-    println!("packed size: {} bytes", data.len());
-    println!("-- verifying the pack...");
-    let program2 = program::unpack(&data)?;
-    if program != program2 {
-        bail!("the unpacked program does not match the original program");
-    }
-    println!("-- writing output file: {}", cli.output);
+    let data = {
+        let bar = cu::progress_unbounded("packing the program");
+        let data = program::pack(&program).context("failed to pack program")?;
+        cu::info!("packed size: {} bytes", data.len());
+        cu::progress!(&bar, (), "verifying the pack");
+        let program2 =
+            program::unpack(&data).context("failed to unpack program for verification")?;
+        if program != program2 {
+            cu::bail!("the unpacked program does not match the original program");
+        }
+        data
+    };
 
-    std::fs::write(cli.output, data)?;
+    cu::info!("writing output file to: {}", cli.output);
 
-    println!("done!");
+    cu::fs::write(cli.output, data).context("failed to write output file")?;
 
     Ok(())
 }

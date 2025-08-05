@@ -1,10 +1,8 @@
-use anyhow::{anyhow, bail};
 use clap::Parser;
+use cu::pre::*;
 
-use crate::{
-    memory::{align_down, align_up},
-    module::ModuleType,
-};
+use crate::memory::{align_down, align_up};
+use crate::module::ModuleType;
 
 #[derive(Debug, Parser)]
 pub struct Cli {
@@ -51,23 +49,25 @@ pub struct Cli {
     /// Extra memory may be included if the inputs are not page aligned.
     #[clap(short, long, value_parser(parse_region))]
     pub regions: Vec<RegionArg>,
+
+    #[clap(flatten)]
+    pub common: cu::cli::Flags,
 }
 
-fn parse_region(arg: &str) -> anyhow::Result<RegionArg> {
+fn parse_region(arg: &str) -> cu::Result<RegionArg> {
     let (module, arg) = match arg.strip_prefix("[") {
         None => (ModuleType::None, arg),
         Some(rest) => {
             let rest = rest.trim_start();
             let mut parts = rest.splitn(2, "]:");
-            let module_str = parts
-                .next()
-                .ok_or_else(|| anyhow!("invalid region syntax: cannot parse module"))?
-                .trim();
-            let rest = parts.next().ok_or_else(|| {
-                anyhow!("invalid region syntax: missing address range after module")
-            })?;
+            let Some(module_str) = parts.next().map(str::trim) else {
+                cu::bail!("invalid region syntax: missing address range after module");
+            };
+            let Some(rest) = parts.next() else {
+                cu::bail!("invalid region syntax: missing address range after module");
+            };
             if parts.next().is_some() {
-                bail!("invalid region syntax: too many colons")
+                cu::bail!("invalid region syntax: too many colons")
             }
             let module_str = module_str
                 .strip_suffix(".nss")
@@ -79,36 +79,34 @@ fn parse_region(arg: &str) -> anyhow::Result<RegionArg> {
                 "subsdk0" | "multimedia" => ModuleType::Subsdk0,
                 "sdk" | "nnsdk" => ModuleType::Sdk,
                 _ => {
-                    bail!("invalid module: {}", module_str)
+                    cu::bail!("invalid module: {}", module_str)
                 }
             };
             (module, rest)
         }
     };
     let mut parts = arg.splitn(2, '-');
-    let start = parts
-        .next()
-        .ok_or_else(|| anyhow!("invalid region syntax: missing start address"))?
-        .trim();
-    let end = parts
-        .next()
-        .ok_or_else(|| anyhow!("invalid region syntax: missing end address"))?
-        .trim();
+    let Some(start) = parts.next().map(str::trim) else {
+        cu::bail!("invalid region syntax: missing start address");
+    };
+    let Some(end) = parts.next().map(str::trim) else {
+        cu::bail!("invalid region syntax: missing end address");
+    };
     if parts.next().is_some() {
-        bail!("invalid region syntax: too many dashes")
+        cu::bail!("invalid region syntax: too many dashes")
     }
     // align to page boundary
-    let start = align_down!(parse_u32(start)?);
-    let end = align_up!(parse_u32(end)?);
+    let start = align_down!(parse_u32(start).context("parsing region start address")?);
+    let end = align_up!(parse_u32(end).context("parsing region end address")?);
 
     if start >= end {
-        bail!("invalid region: start must be less than end")
+        cu::bail!("invalid region: start must be less than end")
     }
 
     Ok(RegionArg { module, start, end })
 }
 
-fn parse_u32(arg: &str) -> anyhow::Result<u32> {
+fn parse_u32(arg: &str) -> cu::Result<u32> {
     let arg = arg.trim_start_matches(['0', 'x', 'X']);
     if arg.is_empty() {
         return Ok(0);
@@ -116,7 +114,7 @@ fn parse_u32(arg: &str) -> anyhow::Result<u32> {
     Ok(u32::from_str_radix(arg, 16)?)
 }
 
-fn parse_u64(arg: &str) -> anyhow::Result<u64> {
+fn parse_u64(arg: &str) -> cu::Result<u64> {
     let arg = arg.trim_start_matches(['0', 'x', 'X']);
     if arg.is_empty() {
         return Ok(0);

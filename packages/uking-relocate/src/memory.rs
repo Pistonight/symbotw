@@ -1,17 +1,16 @@
 use std::collections::BTreeSet;
 
-use anyhow::{anyhow, bail};
+use cu::pre::*;
+
 use elf::abi::{
     PT_LOAD, R_AARCH64_ABS64, R_AARCH64_GLOB_DAT, R_AARCH64_JUMP_SLOT, R_AARCH64_RELATIVE,
 };
 
 use blueflame::program;
 
-use crate::{
-    cli::RegionArg,
-    elf::{DynamicSymbolTables, ElfWrapper},
-    module::{ModuleData, ModuleInfo, ModuleType, Modules},
-};
+use crate::cli::RegionArg;
+use crate::elf::{DynamicSymbolTables, ElfWrapper};
+use crate::module::{ModuleData, ModuleInfo, ModuleType, Modules};
 
 /// The loaded program memory layout
 pub struct Memory {
@@ -23,88 +22,102 @@ pub struct Memory {
 
 impl Memory {
     /// Load the modules into memory and perform relocation/dynamic linking
-    pub fn load(start: u64, module_data: &ModuleData) -> anyhow::Result<Self> {
+    pub fn load(start: u64, module_data: &ModuleData) -> cu::Result<Self> {
         let mut mem = Self {
             info: module_data.info.clone(),
             start,
             regions: Vec::new(),
             loaded_size: 0,
         };
+        cu::info!("parsing the elf files");
 
-        println!("-- [exefs] parsing ELF files...");
+        let rtld_elf =
+            ElfWrapper::try_parse(&module_data.rtld).context("failed to parse rtld elf")?;
+        let main_elf =
+            ElfWrapper::try_parse(&module_data.main).context("failed to parse main elf")?;
+        let subsdk0_elf =
+            ElfWrapper::try_parse(&module_data.subsdk0).context("failed to parse subsdk0 elf")?;
+        let sdk_elf = ElfWrapper::try_parse(&module_data.sdk).context("failed to parse sdk elf")?;
 
-        let rtld_elf = ElfWrapper::try_parse(&module_data.rtld)?;
-        let main_elf = ElfWrapper::try_parse(&module_data.main)?;
-        let subsdk0_elf = ElfWrapper::try_parse(&module_data.subsdk0)?;
-        let sdk_elf = ElfWrapper::try_parse(&module_data.sdk)?;
+        cu::info!("loading modules into memory");
+        cu::info!("SEGMENT START      FILE_SIZE  MEM_SIZE");
 
-        println!("-- [exefs] loading modules into memory...");
-
-        println!();
-        println!("SEGMENT START      FILE_SIZE  MEM_SIZE");
-
-        mem.load_module(ModuleType::None, &rtld_elf, &module_data.info.rtld)?;
-        mem.load_module(ModuleType::Main, &main_elf, &module_data.info.main)?;
-        mem.load_module(ModuleType::Subsdk0, &subsdk0_elf, &module_data.info.subsdk0)?;
-        mem.load_module(ModuleType::Sdk, &sdk_elf, &module_data.info.sdk)?;
+        mem.load_module(ModuleType::None, &rtld_elf, &module_data.info.rtld)
+            .context("failed to load rtld module")?;
+        mem.load_module(ModuleType::Main, &main_elf, &module_data.info.main)
+            .context("failed to load main module")?;
+        mem.load_module(ModuleType::Subsdk0, &subsdk0_elf, &module_data.info.subsdk0)
+            .context("failed to load subsdk0 module")?;
+        mem.load_module(ModuleType::Sdk, &sdk_elf, &module_data.info.sdk)
+            .context("failed to load sdk module")?;
 
         mem.loaded_size = module_data.info.sdk.end;
 
-        println!("-- [exefs] loading dynamic symbols...");
+        cu::info!("loading dynamic symbols");
         let mut dynamic_symbols = DynamicSymbolTables::new(start, mem.loaded_size);
-        let count = rtld_elf.load_dynamic_symbols(
-            ModuleType::None,
-            start + module_data.info.rtld.start as u64,
-            &mut dynamic_symbols.rtld,
-        )?;
-        println!();
-        println!("MODULE   DYNAMIC SYMBOLS");
-        println!("rtld     {count}");
-        let count = main_elf.load_dynamic_symbols(
-            ModuleType::Main,
-            start + module_data.info.main.start as u64,
-            &mut dynamic_symbols.main,
-        )?;
-        println!("main     {count}");
-        let count = subsdk0_elf.load_dynamic_symbols(
-            ModuleType::Subsdk0,
-            start + module_data.info.subsdk0.start as u64,
-            &mut dynamic_symbols.subsdk0,
-        )?;
-        println!("subsdk0  {count}");
-        let count = sdk_elf.load_dynamic_symbols(
-            ModuleType::Sdk,
-            start + module_data.info.sdk.start as u64,
-            &mut dynamic_symbols.sdk,
-        )?;
-        println!("sdk      {count}");
+        rtld_elf
+            .load_dynamic_symbols(
+                ModuleType::None,
+                start + module_data.info.rtld.start as u64,
+                &mut dynamic_symbols.rtld,
+            )
+            .context("failed to load dynamic symbols for rtld module")?;
+        main_elf
+            .load_dynamic_symbols(
+                ModuleType::Main,
+                start + module_data.info.main.start as u64,
+                &mut dynamic_symbols.main,
+            )
+            .context("failed to load dynamic symbols for main module")?;
+        subsdk0_elf
+            .load_dynamic_symbols(
+                ModuleType::Subsdk0,
+                start + module_data.info.subsdk0.start as u64,
+                &mut dynamic_symbols.subsdk0,
+            )
+            .context("failed to load dynamic symbols for subsdk0 module")?;
+        sdk_elf
+            .load_dynamic_symbols(
+                ModuleType::Sdk,
+                start + module_data.info.sdk.start as u64,
+                &mut dynamic_symbols.sdk,
+            )
+            .context("failed to load dynamic symbols for sdk module")?;
 
         let mut count = 0;
-        count += mem.relocate(
-            ModuleType::None,
-            &rtld_elf,
-            &module_data.info.rtld,
-            &dynamic_symbols,
-        )?;
-        count += mem.relocate(
-            ModuleType::Main,
-            &main_elf,
-            &module_data.info.main,
-            &dynamic_symbols,
-        )?;
-        count += mem.relocate(
-            ModuleType::Subsdk0,
-            &subsdk0_elf,
-            &module_data.info.subsdk0,
-            &dynamic_symbols,
-        )?;
-        count += mem.relocate(
-            ModuleType::Sdk,
-            &sdk_elf,
-            &module_data.info.sdk,
-            &dynamic_symbols,
-        )?;
-        println!("-- [exefs] applied {count} relocations across all modules",);
+        count += mem
+            .relocate(
+                ModuleType::None,
+                &rtld_elf,
+                &module_data.info.rtld,
+                &dynamic_symbols,
+            )
+            .context("failed to relocate rtld module")?;
+        count += mem
+            .relocate(
+                ModuleType::Main,
+                &main_elf,
+                &module_data.info.main,
+                &dynamic_symbols,
+            )
+            .context("failed to relocate main module")?;
+        count += mem
+            .relocate(
+                ModuleType::Subsdk0,
+                &subsdk0_elf,
+                &module_data.info.subsdk0,
+                &dynamic_symbols,
+            )
+            .context("failed to relocate subsdk0 module")?;
+        count += mem
+            .relocate(
+                ModuleType::Sdk,
+                &sdk_elf,
+                &module_data.info.sdk,
+                &dynamic_symbols,
+            )
+            .context("failed to relocate sdk module")?;
+        cu::info!("applied {count} relocations across all modules",);
 
         Ok(mem)
     }
@@ -115,18 +128,18 @@ impl Memory {
         module: ModuleType,
         elf: &ElfWrapper,
         info: &ModuleInfo,
-    ) -> anyhow::Result<()> {
+    ) -> cu::Result<()> {
         if self.loaded_size != info.start {
-            bail!("unexpected loaded size mismatch for {}", module);
+            cu::bail!("unexpected loaded size mismatch for {module}");
         }
         let mut segment_start = info.start;
         for ph in elf.segments {
             if ph.p_type == PT_LOAD {
                 if ph.p_vaddr != ph.p_paddr {
-                    bail!("unexpected p_vaddr != p_paddr");
+                    cu::bail!("unexpected p_vaddr != p_paddr");
                 }
                 if ph.p_vaddr != (segment_start - info.start) as u64 {
-                    bail!(
+                    cu::bail!(
                         "unexpected p_vaddr != start ({} != {})",
                         ph.p_vaddr,
                         segment_start - info.start
@@ -142,7 +155,7 @@ impl Memory {
                     ph.p_memsz as u32,
                 );
                 let size = region.get_byte_len();
-                println!(
+                cu::info!(
                     "{:8}0x{:08x} 0x{:08x} 0x{:08x}  {}",
                     module.to_string(),
                     segment_start,
@@ -156,13 +169,13 @@ impl Memory {
                 if permission == 5 {
                     // RX
                     if segment_start != info.text_end {
-                        bail!("unexpected text end mismatch for {module}");
+                        cu::bail!("unexpected text end mismatch for {module}");
                     }
                 }
             }
         }
         if segment_start != info.end {
-            bail!(
+            cu::bail!(
                 "unexpected end mismatch for {}, expected 0x{:08x}, actual 0x{:08x}",
                 module,
                 info.end,
@@ -180,17 +193,20 @@ impl Memory {
         elf: &ElfWrapper,
         info: &ModuleInfo,
         dynamic: &DynamicSymbolTables,
-    ) -> anyhow::Result<u32> {
-        println!("-- [exefs] applying relocation to {module}");
+    ) -> cu::Result<u32> {
+        cu::info!("applying relocation to {module}");
 
         let mut module_regions = self
             .regions
             .iter_mut()
             .filter(|r| r.module == module)
             .collect::<Vec<_>>();
-        let (symbols, strtab) = elf
-            .dynamic_symbol_table()?
-            .ok_or_else(|| anyhow!("missing dynamic symbol table"))?;
+        let Some((symbols, strtab)) = elf
+            .dynamic_symbol_table()
+            .with_context(|| format!("failed to parse dynamic symbol table for {module} module"))?
+        else {
+            cu::bail!("missing dynamic symbol table for module {module}");
+        };
         let mut unresolved_global_data = BTreeSet::new();
         let mut unresolved_global_plt = BTreeSet::new();
 
@@ -202,14 +218,14 @@ impl Memory {
                 R_AARCH64_ABS64 => {
                     // maybe external functions in vtable?
                     if rela.r_sym == 0 {
-                        bail!(
+                        cu::bail!(
                             "unexpected empty r_sym in .rela.dyn: 0x{:08x}",
                             rela.r_offset
                         );
                     }
                     if rela.r_addend < 0 {
                         // BOTW only has positive r_addend
-                        bail!(
+                        cu::bail!(
                             "unexpected negative r_addend in .rela.dyn: {}",
                             rela.r_addend
                         );
@@ -223,13 +239,13 @@ impl Memory {
                 R_AARCH64_GLOB_DAT => {
                     // external data symbols
                     if rela.r_sym == 0 {
-                        bail!(
+                        cu::bail!(
                             "unexpected empty r_sym in .rela.dyn: 0x{:08x}",
                             rela.r_offset
                         );
                     }
                     if rela.r_addend != 0 {
-                        bail!(
+                        cu::bail!(
                             "unexpected r_addend in .rela.dyn for GLOB_DAT: {}",
                             rela.r_addend
                         );
@@ -251,7 +267,7 @@ impl Memory {
                 R_AARCH64_RELATIVE => {
                     // these are things like vtables in .data
                     if rela.r_sym != 0 {
-                        bail!(
+                        cu::bail!(
                             "unexpected r_sym in {}.rela.dyn: 0x{:08x}",
                             module,
                             rela.r_sym
@@ -259,7 +275,7 @@ impl Memory {
                     }
                     let offset = rela.r_offset as u32;
                     if rela.r_addend < 0 {
-                        bail!(
+                        cu::bail!(
                             "unexpected r_addend in {}.rela.dyn: 0x{:08x}",
                             module,
                             rela.r_addend
@@ -271,7 +287,7 @@ impl Memory {
                     count += 1;
                 }
                 _ => {
-                    bail!("unexpected relocation type in .rela.dyn: {}", rela.r_type);
+                    cu::bail!("unexpected relocation type in .rela.dyn: {}", rela.r_type);
                 }
             }
         }
@@ -279,18 +295,18 @@ impl Memory {
         // plt only has JUMP_SLOT
         for rela in elf.rela_plt()? {
             if rela.r_addend != 0 {
-                bail!("unexpected r_addend in .rela.plt: {}", rela.r_addend);
+                cu::bail!("unexpected r_addend in .rela.plt: {}", rela.r_addend);
             }
             match rela.r_type {
                 R_AARCH64_JUMP_SLOT => {
                     if rela.r_sym == 0 {
-                        bail!(
+                        cu::bail!(
                             "unexpected empty r_sym in .rela.plt: 0x{:08x}",
                             rela.r_offset
                         );
                     }
                     if rela.r_addend != 0 {
-                        bail!("unexpected r_addend in .rela.plt: 0x{:08x}", rela.r_addend);
+                        cu::bail!("unexpected r_addend in .rela.plt: 0x{:08x}", rela.r_addend);
                     }
                     let symbol = symbols.get(rela.r_sym as usize)?;
                     let symbol_name = strtab.get(symbol.st_name as usize)?;
@@ -312,30 +328,28 @@ impl Memory {
                     count += 1;
                 }
                 _ => {
-                    bail!("unexpected relocation type in .rela.plt: {}", rela.r_type);
+                    cu::bail!("unexpected relocation type in .rela.plt: {}", rela.r_type);
                 }
             }
         }
 
         if !unresolved_global_data.is_empty() {
-            println!(
-                "WARNING - the following global variables are unresolved: {unresolved_global_data:?}",
+            cu::debug!("unresolved global variables: {unresolved_global_data:?}");
+            cu::warn!(
+                "{} unresolved global variables",
+                unresolved_global_data.len()
             );
         }
         if !unresolved_global_plt.is_empty() {
-            println!(
-                "WARNING - the following GOT PLT entries are unresolved: {unresolved_global_data:?}",
-            );
+            cu::debug!("unresolved got plt entries: {unresolved_global_plt:?}");
+            cu::warn!("{} unresolved got plt entries", unresolved_global_plt.len());
         }
+        cu::info!("applied {count} relocations to {module} module");
         Ok(count)
     }
 
     /// Write the relocation value to offset in the region
-    fn write_relocation(
-        regions: &mut [&mut Region],
-        offset: u32,
-        value: u64,
-    ) -> anyhow::Result<()> {
+    fn write_relocation(regions: &mut [&mut Region], offset: u32, value: u64) -> cu::Result<()> {
         // convert offset from relative to module start to relative to program start
         let offset = offset + regions[0].rel_start;
         for region in regions {
@@ -345,7 +359,7 @@ impl Memory {
             }
             if region.rel_start > offset {
                 // the offset is before this region
-                bail!("unexpected offset 0x{:08x} not in any region", offset);
+                cu::bail!("unexpected offset 0x{:08x} not in any region", offset);
             }
             region.write(offset, value);
             break;
@@ -359,7 +373,6 @@ impl Memory {
         regions: &[RegionArg],
         mut builder: program::BuilderPhase3,
     ) -> program::BuilderPhase3 {
-        println!("-- [exefs] copying program memory...");
         let mut page_starts = BTreeSet::new();
         for region in regions {
             let region_start =
@@ -396,7 +409,7 @@ impl Memory {
         for (rel_start, num_pages) in page_regions {
             builder = self.add_segments_in(rel_start, num_pages, &mut count, builder);
         }
-        println!("-- [exefs] copied {count} segments");
+        cu::info!("copied {count} segments");
 
         builder
     }
@@ -497,7 +510,7 @@ impl Region {
         }
         let rel_start = rel_start.max(self.rel_start);
         let rel_end = rel_end.min(self_rel_end);
-        println!(
+        cu::info!(
             "loading 0x{:08x}-0x{:08x} {} {}",
             rel_start,
             rel_end,
