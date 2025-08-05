@@ -51,7 +51,7 @@ pub struct Cli {
     pub regions: Vec<RegionArg>,
 
     #[clap(flatten)]
-    pub common: cu::cli::Flags
+    pub common: cu::cli::Flags,
 }
 
 fn parse_region(arg: &str) -> cu::Result<RegionArg> {
@@ -60,9 +60,7 @@ fn parse_region(arg: &str) -> cu::Result<RegionArg> {
         Some(rest) => {
             let rest = rest.trim_start();
             let mut parts = rest.splitn(2, "]:");
-            let Some(module_str) = parts
-                .next()
-                .map(str::trim) else {
+            let Some(module_str) = parts.next().map(str::trim) else {
                 cu::bail!("invalid region syntax: missing address range after module");
             };
             let Some(rest) = parts.next() else {
@@ -88,14 +86,10 @@ fn parse_region(arg: &str) -> cu::Result<RegionArg> {
         }
     };
     let mut parts = arg.splitn(2, '-');
-    let Some(start) = parts
-        .next()
-        .map(str::trim) else  {
+    let Some(start) = parts.next().map(str::trim) else {
         cu::bail!("invalid region syntax: missing start address");
     };
-    let Some(end) = parts
-        .next()
-        .map(str::trim) else  {
+    let Some(end) = parts.next().map(str::trim) else {
         cu::bail!("invalid region syntax: missing end address");
     };
     if parts.next().is_some() {

@@ -5,12 +5,12 @@ use cu::pre::*;
 
 use derive_more::Deref;
 
+use elf::ElfBytes;
 use elf::abi::{STB_LOCAL, STB_WEAK, STV_HIDDEN, STV_INTERNAL, STV_PROTECTED};
 use elf::endian::LittleEndian;
 use elf::parse::{ParsingIterator, ParsingTable};
 use elf::relocation::Rela;
 use elf::segment::ProgramHeader;
-use elf::ElfBytes;
 
 use crate::module::ModuleType;
 
@@ -45,7 +45,9 @@ impl<'data> ElfWrapper<'data> {
     ) -> cu::Result<u32> {
         cu::debug!("loading dynamic symbol table for '{module}'");
         let Some((dynsyms, strtab)) = self
-            .dynamic_symbol_table().context("failed to parse dynamic symbol table")? else {
+            .dynamic_symbol_table()
+            .context("failed to parse dynamic symbol table")?
+        else {
             cu::bailand!(error!("missing dynamic symbol table"));
         };
         let mut count = 0;
@@ -102,22 +104,28 @@ impl<'data> ElfWrapper<'data> {
     /// Get the iterator for the .rela.dyn section
     pub fn rela_dyn(&self) -> cu::Result<ParsingIterator<'data, LittleEndian, Rela>> {
         let Some(rela_dyn) = self
-            .section_header_by_name(".rela.dyn").context("parse error when finding .rela.dyn section")?
-            else {
+            .section_header_by_name(".rela.dyn")
+            .context("parse error when finding .rela.dyn section")?
+        else {
             cu::bailand!(error!("missing .rela.dyn section"));
         };
-        let rela_dyn = self.section_data_as_relas(&rela_dyn).context("failed to parse .rela.dyn section")?;
+        let rela_dyn = self
+            .section_data_as_relas(&rela_dyn)
+            .context("failed to parse .rela.dyn section")?;
         Ok(rela_dyn)
     }
 
     /// Get the iterator for the .rela.plt section
     pub fn rela_plt(&self) -> cu::Result<ParsingIterator<'data, LittleEndian, Rela>> {
         let Some(rela_plt) = self
-            .section_header_by_name(".rela.plt").context("parse error when finding .rela.plt section")?
-            else {
+            .section_header_by_name(".rela.plt")
+            .context("parse error when finding .rela.plt section")?
+        else {
             cu::bailand!(error!("missing .rela.plt section"));
         };
-        let rela_plt = self.section_data_as_relas(&rela_plt).context("failed to parse .rela.plt section")?;
+        let rela_plt = self
+            .section_data_as_relas(&rela_plt)
+            .context("failed to parse .rela.plt section")?;
         Ok(rela_plt)
     }
 }

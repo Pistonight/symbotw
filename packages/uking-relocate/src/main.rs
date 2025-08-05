@@ -14,17 +14,16 @@ use memory::Memory;
 use module::ModuleData;
 use romfs::Romfs;
 
-
 #[cu::cli(flags = "common")]
 fn main(cli: Cli) -> cu::Result<()> {
-
     if cli.start & 0xFFFFFF00000FFFFF != 0 {
         cu::bail!("invalid program start (see --help)");
     }
 
     // load the files
     let modules = ModuleData::load(&cli.sdk_elf).context("failed to load module data")?;
-    let romfs = Romfs::find_paths(&cli.sdk_elf, cli.romfs.as_deref()).context("did not find all necessary files from romfs")?;
+    let romfs = Romfs::find_paths(&cli.sdk_elf, cli.romfs.as_deref())
+        .context("did not find all necessary files from romfs")?;
 
     // make the memory
     let memory = Memory::load(cli.start, &modules)?;
@@ -52,7 +51,8 @@ fn main(cli: Cli) -> cu::Result<()> {
         let data = program::pack(&program).context("failed to pack program")?;
         cu::info!("packed size: {} bytes", data.len());
         cu::progress!(&bar, (), "verifying the pack");
-        let program2 = program::unpack(&data).context("failed to unpack program for verification")?;
+        let program2 =
+            program::unpack(&data).context("failed to unpack program for verification")?;
         if program != program2 {
             cu::bail!("the unpacked program does not match the original program");
         }

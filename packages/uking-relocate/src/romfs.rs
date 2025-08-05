@@ -8,12 +8,11 @@ pub struct Romfs {
 }
 
 impl Romfs {
-    pub fn find_paths(
-        sdk_path: impl AsRef<Path>,
-        romfs_path: Option<&str>,
-    ) -> cu::Result<Self> {
+    pub fn find_paths(sdk_path: impl AsRef<Path>, romfs_path: Option<&str>) -> cu::Result<Self> {
         let sdk_path = sdk_path.as_ref();
-        let exefs_dir = sdk_path.parent_abs().context("failed to find romfs directory")?;
+        let exefs_dir = sdk_path
+            .parent_abs()
+            .context("failed to find romfs directory")?;
         let actor_info = find_romfs_file(&exefs_dir, romfs_path, "Actor/ActorInfo.product.sbyml")?;
         Ok(Self { actor_info })
     }
@@ -39,7 +38,10 @@ fn find_romfs_file(base: &Path, romfs_base: Option<&str>, file: &str) -> cu::Res
     // otherwise, try to search for romfs directory
     let base_romfs = base.join("romfs");
     if base_romfs.is_dir() {
-        cu::debug!("trying to find location of '{file}' in {}", base_romfs.display());
+        cu::debug!(
+            "trying to find location of '{file}' in {}",
+            base_romfs.display()
+        );
         if let Some(path) = find_file_in_romfs_root(&base_romfs, file) {
             cu::info!("found romfs file '{file}': {}", path.try_to_rel().display());
             return Ok(path);
@@ -49,7 +51,10 @@ fn find_romfs_file(base: &Path, romfs_base: Option<&str>, file: &str) -> cu::Res
     let parent = base.parent_abs()?;
     let parent_romfs = parent.join("romfs");
     if parent_romfs.is_dir() {
-        cu::debug!("trying to find location of '{file}' in {}", parent_romfs.display());
+        cu::debug!(
+            "trying to find location of '{file}' in {}",
+            parent_romfs.display()
+        );
         if let Some(path) = find_file_in_romfs_root(&parent_romfs, file) {
             cu::info!("found romfs file '{file}': {}", path.try_to_rel().display());
             return Ok(path);

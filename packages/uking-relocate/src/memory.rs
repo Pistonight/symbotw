@@ -31,69 +31,92 @@ impl Memory {
         };
         cu::info!("parsing the elf files");
 
-        let rtld_elf = ElfWrapper::try_parse(&module_data.rtld).context("failed to parse rtld elf")?;
-        let main_elf = ElfWrapper::try_parse(&module_data.main).context("failed to parse main elf")?;
-        let subsdk0_elf = ElfWrapper::try_parse(&module_data.subsdk0).context("failed to parse subsdk0 elf")?;
+        let rtld_elf =
+            ElfWrapper::try_parse(&module_data.rtld).context("failed to parse rtld elf")?;
+        let main_elf =
+            ElfWrapper::try_parse(&module_data.main).context("failed to parse main elf")?;
+        let subsdk0_elf =
+            ElfWrapper::try_parse(&module_data.subsdk0).context("failed to parse subsdk0 elf")?;
         let sdk_elf = ElfWrapper::try_parse(&module_data.sdk).context("failed to parse sdk elf")?;
 
         cu::info!("loading modules into memory");
         cu::info!("SEGMENT START      FILE_SIZE  MEM_SIZE");
 
-        mem.load_module(ModuleType::None, &rtld_elf, &module_data.info.rtld).context("failed to load rtld module")?;
-        mem.load_module(ModuleType::Main, &main_elf, &module_data.info.main).context("failed to load main module")?;
-        mem.load_module(ModuleType::Subsdk0, &subsdk0_elf, &module_data.info.subsdk0).context("failed to load subsdk0 module")?;
-        mem.load_module(ModuleType::Sdk, &sdk_elf, &module_data.info.sdk).context("failed to load sdk module")?;
+        mem.load_module(ModuleType::None, &rtld_elf, &module_data.info.rtld)
+            .context("failed to load rtld module")?;
+        mem.load_module(ModuleType::Main, &main_elf, &module_data.info.main)
+            .context("failed to load main module")?;
+        mem.load_module(ModuleType::Subsdk0, &subsdk0_elf, &module_data.info.subsdk0)
+            .context("failed to load subsdk0 module")?;
+        mem.load_module(ModuleType::Sdk, &sdk_elf, &module_data.info.sdk)
+            .context("failed to load sdk module")?;
 
         mem.loaded_size = module_data.info.sdk.end;
 
         cu::info!("loading dynamic symbols");
         let mut dynamic_symbols = DynamicSymbolTables::new(start, mem.loaded_size);
-        rtld_elf.load_dynamic_symbols(
-            ModuleType::None,
-            start + module_data.info.rtld.start as u64,
-            &mut dynamic_symbols.rtld,
-        ).context("failed to load dynamic symbols for rtld module")?;
-        main_elf.load_dynamic_symbols(
-            ModuleType::Main,
-            start + module_data.info.main.start as u64,
-            &mut dynamic_symbols.main,
-        ).context("failed to load dynamic symbols for main module")?;
-        subsdk0_elf.load_dynamic_symbols(
-            ModuleType::Subsdk0,
-            start + module_data.info.subsdk0.start as u64,
-            &mut dynamic_symbols.subsdk0,
-        ).context("failed to load dynamic symbols for subsdk0 module")?;
-        sdk_elf.load_dynamic_symbols(
-            ModuleType::Sdk,
-            start + module_data.info.sdk.start as u64,
-            &mut dynamic_symbols.sdk,
-        ).context("failed to load dynamic symbols for sdk module")?;
+        rtld_elf
+            .load_dynamic_symbols(
+                ModuleType::None,
+                start + module_data.info.rtld.start as u64,
+                &mut dynamic_symbols.rtld,
+            )
+            .context("failed to load dynamic symbols for rtld module")?;
+        main_elf
+            .load_dynamic_symbols(
+                ModuleType::Main,
+                start + module_data.info.main.start as u64,
+                &mut dynamic_symbols.main,
+            )
+            .context("failed to load dynamic symbols for main module")?;
+        subsdk0_elf
+            .load_dynamic_symbols(
+                ModuleType::Subsdk0,
+                start + module_data.info.subsdk0.start as u64,
+                &mut dynamic_symbols.subsdk0,
+            )
+            .context("failed to load dynamic symbols for subsdk0 module")?;
+        sdk_elf
+            .load_dynamic_symbols(
+                ModuleType::Sdk,
+                start + module_data.info.sdk.start as u64,
+                &mut dynamic_symbols.sdk,
+            )
+            .context("failed to load dynamic symbols for sdk module")?;
 
         let mut count = 0;
-        count += mem.relocate(
-            ModuleType::None,
-            &rtld_elf,
-            &module_data.info.rtld,
-            &dynamic_symbols,
-        ).context("failed to relocate rtld module")?;
-        count += mem.relocate(
-            ModuleType::Main,
-            &main_elf,
-            &module_data.info.main,
-            &dynamic_symbols,
-        ).context("failed to relocate main module")?;
-        count += mem.relocate(
-            ModuleType::Subsdk0,
-            &subsdk0_elf,
-            &module_data.info.subsdk0,
-            &dynamic_symbols,
-        ).context("failed to relocate subsdk0 module")?;
-        count += mem.relocate(
-            ModuleType::Sdk,
-            &sdk_elf,
-            &module_data.info.sdk,
-            &dynamic_symbols,
-        ).context("failed to relocate sdk module")?;
+        count += mem
+            .relocate(
+                ModuleType::None,
+                &rtld_elf,
+                &module_data.info.rtld,
+                &dynamic_symbols,
+            )
+            .context("failed to relocate rtld module")?;
+        count += mem
+            .relocate(
+                ModuleType::Main,
+                &main_elf,
+                &module_data.info.main,
+                &dynamic_symbols,
+            )
+            .context("failed to relocate main module")?;
+        count += mem
+            .relocate(
+                ModuleType::Subsdk0,
+                &subsdk0_elf,
+                &module_data.info.subsdk0,
+                &dynamic_symbols,
+            )
+            .context("failed to relocate subsdk0 module")?;
+        count += mem
+            .relocate(
+                ModuleType::Sdk,
+                &sdk_elf,
+                &module_data.info.sdk,
+                &dynamic_symbols,
+            )
+            .context("failed to relocate sdk module")?;
         cu::info!("applied {count} relocations across all modules",);
 
         Ok(mem)
@@ -179,8 +202,9 @@ impl Memory {
             .filter(|r| r.module == module)
             .collect::<Vec<_>>();
         let Some((symbols, strtab)) = elf
-            .dynamic_symbol_table().with_context(|| format!("failed to parse dynamic symbol table for {module} module"))?
-            else {
+            .dynamic_symbol_table()
+            .with_context(|| format!("failed to parse dynamic symbol table for {module} module"))?
+        else {
             cu::bail!("missing dynamic symbol table for module {module}");
         };
         let mut unresolved_global_data = BTreeSet::new();
@@ -311,7 +335,10 @@ impl Memory {
 
         if !unresolved_global_data.is_empty() {
             cu::debug!("unresolved global variables: {unresolved_global_data:?}");
-            cu::warn!("{} unresolved global variables", unresolved_global_data.len());
+            cu::warn!(
+                "{} unresolved global variables",
+                unresolved_global_data.len()
+            );
         }
         if !unresolved_global_plt.is_empty() {
             cu::debug!("unresolved got plt entries: {unresolved_global_plt:?}");
@@ -322,11 +349,7 @@ impl Memory {
     }
 
     /// Write the relocation value to offset in the region
-    fn write_relocation(
-        regions: &mut [&mut Region],
-        offset: u32,
-        value: u64,
-    ) -> cu::Result<()> {
+    fn write_relocation(regions: &mut [&mut Region], offset: u32, value: u64) -> cu::Result<()> {
         // convert offset from relative to module start to relative to program start
         let offset = offset + regions[0].rel_start;
         for region in regions {

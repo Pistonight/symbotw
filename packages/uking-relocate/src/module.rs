@@ -33,7 +33,9 @@ impl ModuleData {
                 Modules::new_160()
             }
             // TODO: 1.8
-            _ => cu::bail!("the input files does not match a supported version (only 1.5.0 and 1.6.0 are supported right now)"),
+            _ => cu::bail!(
+                "the input files does not match a supported version (only 1.5.0 and 1.6.0 are supported right now)"
+            ),
         };
 
         let path = Path::new(path);
@@ -41,15 +43,24 @@ impl ModuleData {
         let directory = path.parent_abs().context("cannot get exefs directory")?;
 
         let rtld_path = directory.join(file_name.replace("sdk", "rtld"));
-        cu::info!("inferred path for rtld    : {}", rtld_path.try_to_rel().display());
+        cu::info!(
+            "inferred path for rtld    : {}",
+            rtld_path.try_to_rel().display()
+        );
         let rtld_data = cu::fs::read(&rtld_path)?;
 
         let main_path = directory.join(file_name.replace("sdk", "main"));
-        cu::info!("inferred path for main    : {}", main_path.try_to_rel().display());
+        cu::info!(
+            "inferred path for main    : {}",
+            main_path.try_to_rel().display()
+        );
         let main_data = cu::fs::read(&main_path)?;
 
         let subsdk0_path = directory.join(file_name.replace("sdk", "subsdk0"));
-        cu::info!("inferred path for subsdk0 : {}", subsdk0_path.try_to_rel().display());
+        cu::info!(
+            "inferred path for subsdk0 : {}",
+            subsdk0_path.try_to_rel().display()
+        );
         let subsdk0_data = cu::fs::read(&subsdk0_path)?;
 
         let data = Self {
