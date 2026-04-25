@@ -27,7 +27,7 @@ impl<'data> ElfWrapper<'data> {
         cu::debug!("parsing elf, size={}", data.len());
         let elf = ElfBytes::minimal_parse(data)?;
         let Some(segments) = elf.segments() else {
-            cu::bailand!(error!("unexpected empty program header table"));
+            cu::bail!("unexpected empty program header table");
         };
         Ok(Self { elf, segments })
     }
@@ -48,7 +48,7 @@ impl<'data> ElfWrapper<'data> {
             .dynamic_symbol_table()
             .context("failed to parse dynamic symbol table")?
         else {
-            cu::bailand!(error!("missing dynamic symbol table"));
+            cu::bail!("missing dynamic symbol table");
         };
         let mut count = 0;
         for sym in dynsyms {
@@ -89,7 +89,7 @@ impl<'data> ElfWrapper<'data> {
                         entry.insert(value);
                     } else if !value.weak {
                         // if both are strong, it's an error
-                        cu::bailand!(error!("found duplicate strong symbol in {module}: {name}"));
+                        cu::bail!("found duplicate strong symbol in {module}: {name}");
                     }
                 }
             }
@@ -107,7 +107,7 @@ impl<'data> ElfWrapper<'data> {
             .section_header_by_name(".rela.dyn")
             .context("parse error when finding .rela.dyn section")?
         else {
-            cu::bailand!(error!("missing .rela.dyn section"));
+            cu::bail!("missing .rela.dyn section");
         };
         let rela_dyn = self
             .section_data_as_relas(&rela_dyn)
@@ -121,7 +121,7 @@ impl<'data> ElfWrapper<'data> {
             .section_header_by_name(".rela.plt")
             .context("parse error when finding .rela.plt section")?
         else {
-            cu::bailand!(error!("missing .rela.plt section"));
+            cu::bail!("missing .rela.plt section");
         };
         let rela_plt = self
             .section_data_as_relas(&rela_plt)
@@ -207,7 +207,7 @@ impl DynamicSymbolTables {
         for (_, symbol) in &results {
             if !symbol.weak {
                 if strong_sym.is_some() {
-                    cu::bailand!(warn!("conflicting strong symbol: {name}"));
+                    cu::bail!("conflicting strong symbol: {name}");
                 }
                 strong_sym = Some(symbol);
             }

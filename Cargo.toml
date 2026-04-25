@@ -1,9 +1,14 @@
 [workspace]
 members = [
-    "packages/uking-extract/common",
-    "packages/uking-extract/backend",
-    "packages/uking-extract/frontend",
-    "packages/uking-extract", 
+    # "packages/uking-extract/common",
+    # "packages/uking-extract/backend",
+    # "packages/uking-extract/frontend",
+    # "packages/uking-extract", 
     "packages/uking-relocate",
+    # "packages/tyyaml",
 ]
 resolver = "2"
+
+[workspace.dependencies.cu]
+package = "pistonite-cu"
+version = "0.8.2"

@@ -47,15 +47,16 @@ fn main(cli: Cli) -> cu::Result<()> {
         .done();
 
     let data = {
-        let bar = cu::progress_unbounded("packing the program");
+        let bar = cu::progress("packing the program").spawn();
         let data = program::pack(&program).context("failed to pack program")?;
         cu::info!("packed size: {} bytes", data.len());
-        cu::progress!(&bar, (), "verifying the pack");
+        cu::progress!(bar, "verifying the pack");
         let program2 =
             program::unpack(&data).context("failed to unpack program for verification")?;
         if program != program2 {
             cu::bail!("the unpacked program does not match the original program");
         }
+        bar.done();
         data
     };
 

@@ -5,15 +5,9 @@ edition = "2024"
 description = "Tool for relocating uking binaries"
 publish = false
 
-[dependencies.cu]
-version = "0.2.1"
-git = "https://github.com/Pistonight/cu"
-features = ["cli", "fs"]
-
 [dependencies]
-blueflame = { git = "https://github.com/Pistonite/botw-ist", rev = "30b8890a139baa474801b9f2759784e39a3873c0", default-features = false }
-clap = { version = "4.5.42", features = ["derive"] }
-derive_more = { version = "2.0.1", features = ["full"] }
+cu = { workspace = true, features = ["cli", "fs"]}
+blueflame = { git = "https://github.com/Pistonite/botw-ist", rev = "982c8aaf46ebf58ac77b3872f802c17eaac6060c", default-features = false }
 elf = "0.8.0"
-memchr = "2.7.5"
+memchr = "2.8.0"
 roead = "1.0.0"
