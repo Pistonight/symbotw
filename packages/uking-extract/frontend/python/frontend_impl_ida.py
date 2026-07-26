@@ -370,7 +370,11 @@ class IDAStructImportVisitor(StructImportVisitor):
         member_d.type = tinfo
         if is_vtable:
             member_d.set_vftable()
-        if is_base:
+        if is_base and not tinfo.is_union():
+            # IDA (like C++) does not support a union as a base class.
+            # This happens when the base class was simplified down to just
+            # an anonymous union it wraps (e.g. sead::Matrix34CalcCommon<float>::Base).
+            # Keep the member for layout/size purposes, just don't mark it as a base class.
             member_d.set_baseclass()
         _assert(member_d.type is not None, f"Failed to set struct member type: {self.name}")
         member_size = member_d.type.get_size()
