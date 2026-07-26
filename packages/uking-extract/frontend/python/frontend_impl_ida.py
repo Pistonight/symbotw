@@ -370,7 +370,7 @@ class IDAStructImportVisitor(StructImportVisitor):
         member_d.type = tinfo
         if is_vtable:
             member_d.set_vftable()
-        if is_base:
+        if is_base and not tinfo.is_union():
             member_d.set_baseclass()
         _assert(member_d.type is not None, f"Failed to set struct member type: {self.name}")
         member_size = member_d.type.get_size()
